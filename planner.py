@@ -259,6 +259,96 @@ def delete_meal(meal_id):
     
     return jsonify({'success': True})
 
+@app.route('/add_to_my_meals/<int:meal_id>', methods=['POST'])
+@login_required
+def add_to_my_meals(meal_id):
+    """Copy a community meal to user's personal meals"""
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Get the meal details
+    cursor.execute('''
+        SELECT name, ingredients, instructions, prep_time, cook_time, servings, category
+        FROM meals WHERE id = ?
+    ''', (meal_id,))
+    meal = cursor.fetchone()
+    
+    if meal:
+        # Check if user already has this meal
+        cursor.execute('''
+            SELECT id FROM meals 
+            WHERE user_id = ? AND name = ? AND is_community = FALSE
+        ''', (session['user_id'], meal[0]))
+        
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'message': 'You already have this meal in your collection'})
+        
+        # Add the meal to user's personal meals
+        cursor.execute('''
+            INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+        ''', (meal[0], meal[1], meal[2], meal[3], meal[4], meal[5], meal[6], session['user_id']))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Meal added to your collection'})
+    else:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Meal not found'})
+
+@app.route('/friends')
+@login_required
+def friends():
+    """Friends page showing other users' meal plans"""
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Get all users except current user
+    cursor.execute('''
+        SELECT id, username 
+        FROM users 
+        WHERE id != ? 
+        ORDER BY username
+    ''', (session['user_id'],))
+    users = cursor.fetchall()
+    
+    # Get current month's meal plans for all users
+    now = datetime.now()
+    year = now.year
+    month = now.month
+    start_date = datetime(year, month, 1).date()
+    end_date = (datetime(year, month + 1, 1) - timedelta(days=1)).date()
+    
+    friends_data = []
+    for user in users:
+        cursor.execute('''
+            SELECT mp.date, mp.meal_type, m.name 
+            FROM meal_plan mp 
+            JOIN meals m ON mp.meal_id = m.id 
+            WHERE mp.date BETWEEN ? AND ? AND mp.user_id = ?
+            ORDER BY mp.date, mp.meal_type
+        ''', (start_date, end_date, user[0]))
+        meal_plans = cursor.fetchall()
+        
+        # Organize meal plans by date
+        meal_plan_dict = {}
+        for plan in meal_plans:
+            date_str = plan[0]
+            if date_str not in meal_plan_dict:
+                meal_plan_dict[date_str] = {}
+            meal_plan_dict[date_str][plan[1]] = plan[2]
+        
+        friends_data.append({
+            'id': user[0],
+            'username': user[1],
+            'meal_plans': meal_plan_dict
+        })
+    
+    conn.close()
+    
+    return render_template('friends.html', friends=friends_data, month_name=calendar.month_name[month], year=year)
+
 @app.route('/ingredients')
 @login_required
 def ingredients():

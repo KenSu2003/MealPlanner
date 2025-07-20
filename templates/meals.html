@@ -142,6 +142,11 @@
                             <i class="fas fa-calendar me-1"></i>Calendar
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('friends') }}">
+                            <i class="fas fa-users me-1"></i>Friends
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user me-1"></i>{{ session.username }}
@@ -513,7 +518,25 @@
         }
 
         function addToMyMeals(mealId) {
-            alert('Add to my meals functionality coming soon!');
+            fetch(`/add_to_my_meals/${mealId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding meal to your collection');
+            });
         }
 
         // Handle tab navigation from URL hash
