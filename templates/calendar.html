@@ -572,6 +572,16 @@
                         </div>
                     </div>
                     
+                    <!-- Favorites Section -->
+                    <div class="favorites-section mt-4 mb-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-heart me-2 text-danger"></i>Favorite Meals
+                        </h6>
+                        <div class="available-meals-bar" id="favoritesMealsBar">
+                            <!-- Favorite meals will be populated here -->
+                        </div>
+                    </div>
+
                     <!-- Available Meals Bar -->
                     <div class="available-meals-section mt-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -609,11 +619,37 @@
                 </div>
                 <div class="modal-body">
                     <div id="communityMealDetailsContent">
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                        <!-- Basic info shown initially -->
+                        <div class="meal-basic-info">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-clock me-2"></i>Cook Time</h6>
+                                    <p id="meal-cook-time">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-fire me-2"></i>Calories</h6>
+                                    <p id="meal-calories">-</p>
+                                </div>
                             </div>
-                            <p class="mt-2">Loading meal details...</p>
+                            <div class="mt-3">
+                                <h6><i class="fas fa-list me-2"></i>Ingredients</h6>
+                                <div id="meal-ingredients-basic">-</div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-outline-primary btn-sm" onclick="showFullMealDetails()">
+                                    <i class="fas fa-expand-alt me-1"></i>Show Full Details
+                                </button>
+                            </div>
+                        </div>
+                        <div class="meal-full-details" style="display: none;">
+                            <div id="meal-full-content">
+                                <!-- Full details will be loaded here -->
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="showBasicMealDetails()">
+                                    <i class="fas fa-compress-alt me-1"></i>Show Basic Info
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1238,9 +1274,17 @@
             fetch(`/get_meal_details/${mealId}`)
                 .then(response => response.json())
                 .then(data => {
-                    const content = document.getElementById('communityMealDetailsContent');
+                    // Populate basic info
+                    document.getElementById('meal-cook-time').textContent = `${data.cook_time || 0} minutes`;
+                    document.getElementById('meal-calories').textContent = data.calories || 'Not specified';
                     
-                    let html = `
+                    // Show ingredients (truncated for basic view)
+                    const ingredients = data.ingredients || 'No ingredients listed';
+                    const truncatedIngredients = ingredients.length > 100 ? ingredients.substring(0, 100) + '...' : ingredients;
+                    document.getElementById('meal-ingredients-basic').innerHTML = truncatedIngredients.replace(/\n/g, '<br>');
+                    
+                    // Store full content for detailed view
+                    let fullHtml = `
                         <div class="meal-details-content">
                             <div class="meal-details-section">
                                 <h6><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
@@ -1271,25 +1315,28 @@
                     `;
                     
                     if (data.ingredients) {
-                        html += `
+                        fullHtml += `
                             <div class="meal-details-section">
                                 <h6><i class="fas fa-carrot me-2"></i>Ingredients</h6>
-                                <p class="mb-0">${data.ingredients}</p>
+                                <p class="mb-0">${data.ingredients.replace(/\n/g, '<br>')}</p>
                             </div>
                         `;
                     }
                     
                     if (data.instructions) {
-                        html += `
+                        fullHtml += `
                             <div class="meal-details-section">
                                 <h6><i class="fas fa-list-ol me-2"></i>Instructions</h6>
-                                <p class="mb-0">${data.instructions}</p>
+                                <p class="mb-0">${data.instructions.replace(/\n/g, '<br>')}</p>
                             </div>
                         `;
                     }
                     
-                    html += '</div>';
-                    content.innerHTML = html;
+                    fullHtml += '</div>';
+                    document.getElementById('meal-full-content').innerHTML = fullHtml;
+                    
+                    // Show basic info initially
+                    showBasicMealDetails();
                 })
                 .catch(error => {
                     console.error('Error fetching meal details:', error);
@@ -1301,6 +1348,16 @@
                         </div>
                     `;
                 });
+        }
+
+        function showFullMealDetails() {
+            document.querySelector('.meal-basic-info').style.display = 'none';
+            document.querySelector('.meal-full-details').style.display = 'block';
+        }
+
+        function showBasicMealDetails() {
+            document.querySelector('.meal-basic-info').style.display = 'block';
+            document.querySelector('.meal-full-details').style.display = 'none';
         }
     </script>
 </body>

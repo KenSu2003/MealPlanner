@@ -237,12 +237,24 @@ def add_meal():
     
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
+    
+    # Always add to personal meals first
     cursor.execute('''
         INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
     ''', (data['name'], data['ingredients'], data['instructions'], 
           data['prep_time'], data['cook_time'], data['servings'], data['category'], 
-          session['user_id'], data.get('is_community', False)))
+          session['user_id']))
+    
+    # If user wants to share with community, also add a community version
+    if data.get('is_community', False):
+        cursor.execute('''
+            INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+        ''', (data['name'], data['ingredients'], data['instructions'], 
+              data['prep_time'], data['cook_time'], data['servings'], data['category'], 
+              session['user_id']))
+    
     conn.commit()
     conn.close()
     
