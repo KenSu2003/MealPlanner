@@ -228,7 +228,7 @@
             box-shadow: 0 0 20px rgba(0,123,255,0.3);
         }
 
-        .community-meal {
+        .community-meal, .personal-meal {
             position: relative;
             cursor: pointer;
         }
@@ -236,6 +236,11 @@
         .community-meal:hover {
             background-color: #e3f2fd;
             border-color: #2196f3;
+        }
+
+        .personal-meal:hover {
+            background-color: #fff3cd;
+            border-color: #ffc107;
         }
 
         .meal-preview-icon {
@@ -592,13 +597,13 @@
         </div>
     </div>
 
-    <!-- Community Meal Details Modal -->
+    <!-- Meal Details Modal -->
     <div class="modal fade meal-details-modal" id="communityMealDetailsModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-utensils me-2"></i>Community Meal Details
+                        <i class="fas fa-utensils me-2"></i>Meal Details
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -925,12 +930,16 @@
             let personalHtml = '';
             personalMeals.forEach(meal => {
                 personalHtml += `
-                    <div class="draggable-meal" 
+                    <div class="draggable-meal personal-meal" 
                          draggable="true" 
                          data-meal-id="${meal[0]}" 
-                         data-meal-name="${meal[1]}">
+                         data-meal-name="${meal[1]}"
+                         onclick="showMealDetails(${meal[0]}, '${meal[1]}')">
                         <div class="fw-bold">${meal[1]}</div>
                         <small class="text-muted">Your meal</small>
+                        <div class="meal-preview-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
                     </div>
                 `;
             });
@@ -1205,7 +1214,7 @@
             event.stopPropagation();
             
             // Don't show details if we're dragging
-            if (event.target.classList.contains('dragging')) {
+            if (event.target.classList.contains('dragging') || event.target.closest('.dragging')) {
                 return;
             }
             

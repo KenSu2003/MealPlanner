@@ -5,14 +5,11 @@
 5. have a siddebar that allows drag and drop of meals on the the calendar
 6. In my meals need to allow users to edit the meal by either the edit button or pressin on the box
 7. The share to comunity should be a slider icon not a checkbox icon.
-8. For the Meal Details only show the name, cook time, calroeis and ingredients, then have a detal bar. 
-
-9. Favorties from comminuty can be added to user's meal.
-11. Don't automatically close the dauily meal after saving. 
-
+8. For the Meal Details only show the name, cook time, calroeis and ingredients. then show the details when the user clicks on to it.  
 12. When adding a meal and selctimng ad to co,munity throuhg my meal it should add back to my meal as well not just the to community
 13. The meals descriptimng should open up when the meal clip is pressed in meals.
 14. Favroites bar should be above Available Meals in Meal Details 
 15. have an add friend by sharing a userid
 16. when you press ingredients the "freinds" tab ont eh top dissapears
 17. After saving and closing the calendart goes dark and freezes
+18. allow upload image
