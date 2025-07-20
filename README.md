@@ -1,1 +1,1 @@
-# MealPlanner
+# My Meal Planner
