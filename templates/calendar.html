@@ -979,6 +979,7 @@
         }
 
         function handleDragStart(e) {
+            // Prevent click event from firing during drag
             e.target.classList.add('dragging');
             e.dataTransfer.setData('text/plain', JSON.stringify({
                 mealId: e.target.dataset.mealId,
@@ -988,6 +989,10 @@
 
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+            // Clear any drag-over states
+            document.querySelectorAll('.drag-over').forEach(element => {
+                element.classList.remove('drag-over');
+            });
         }
 
         function handleDragOver(e) {
@@ -1036,10 +1041,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Refresh the day details
-                    viewDayDetails(date);
                     // Show success message
                     showToast('Meal updated successfully!', 'success');
+                    // Refresh the page after a short delay to update the calendar
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
                 } else {
                     showToast('Error updating meal', 'error');
                 }
@@ -1067,6 +1074,11 @@
         function showMealDetails(mealId, mealName) {
             // Prevent this from interfering with drag and drop
             event.stopPropagation();
+            
+            // Don't show details if we're dragging
+            if (event.target.classList.contains('dragging')) {
+                return;
+            }
             
             // Show the modal
             const modal = new bootstrap.Modal(document.getElementById('communityMealDetailsModal'));

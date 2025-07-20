@@ -162,13 +162,18 @@ def meals():
     cursor.execute('SELECT * FROM meals WHERE user_id = ? AND is_community = FALSE ORDER BY name', (session['user_id'],))
     personal_meals = cursor.fetchall()
     
-    # Get community meals (shared by other users)
-    cursor.execute('SELECT m.*, u.username FROM meals m JOIN users u ON m.user_id = u.id WHERE m.is_community = TRUE ORDER BY m.name')
+    # Get community meals (including former default meals)
+    cursor.execute('''
+        SELECT m.*, COALESCE(u.username, 'System') as username 
+        FROM meals m 
+        LEFT JOIN users u ON m.user_id = u.id 
+        WHERE m.is_community = TRUE 
+        ORDER BY m.name
+    ''')
     community_meals = cursor.fetchall()
     
-    # Get default meals (system meals)
-    cursor.execute('SELECT * FROM meals WHERE user_id IS NULL ORDER BY name')
-    default_meals = cursor.fetchall()
+    # No more separate default meals - they're now part of community meals
+    default_meals = []
     
     conn.close()
     

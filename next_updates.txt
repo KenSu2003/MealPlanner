@@ -7,6 +7,5 @@
 7. The share to comunity should be a slider icon not a checkbox icon.
 8. For the Meal Details only show the name, cook time, calroeis and ingredients, then have a detal bar. 
 9. Favorties from comminuty can be added to user's meal.
-10. When we press on the community meal clip in the Meal Details, have it show the detailed descrioption.
-11. In the "Meals" tab Ciommunity meals is bnot shoung the community meals wjhich shold be the defaily meals. Check the sql and make sure you have the Community meals 
-12. Also after saving the meal the calendar freezes.
+10. Friends tab –> Clips of Friends –> to see what each friends monthly meal plan is. 
+11. Don't automatically close the dauily meal after saving. 
