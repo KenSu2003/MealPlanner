@@ -1,93 +1,527 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3><i class="fas fa-utensils"></i> My Meals</h3>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMealModal">
-        <i class="fas fa-plus"></i> Add New Meal
-    </button>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meals - Meal Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #667eea !important;
+        }
+        .nav-link {
+            color: #6c757d !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #667eea !important;
+            transform: translateY(-1px);
+        }
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        .nav-tabs {
+            border-bottom: 2px solid #e9ecef;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-radius: 0;
+            transition: all 0.3s ease;
+        }
+        .nav-tabs .nav-link.active {
+            color: #667eea;
+            background: none;
+            border-bottom: 3px solid #667eea;
+        }
+        .nav-tabs .nav-link:hover {
+            border-color: transparent;
+            color: #667eea;
+        }
+        .meal-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        .meal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .meal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .community-badge {
+            background: #28a745;
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+        }
+        .default-badge {
+            background: #6c757d;
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+        }
+        .btn-add-meal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-add-meal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-utensils me-2"></i>Meal Planner
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('meals') }}">
+                            <i class="fas fa-utensils me-1"></i>Meals
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('ingredients') }}">
+                            <i class="fas fa-carrot me-1"></i>Ingredients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('calendar_view') }}">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>{{ session.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-{% if meals %}
-<div class="row">
-    {% for meal in meals %}
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">{{ meal.name }}</h5>
-                    <span class="badge bg-light text-dark">{{ meal.category|title }}</span>
-                </div>
+    <div class="container">
+        <div class="main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+                <h2 class="mb-0"><i class="fas fa-utensils me-2"></i>Meals</h2>
+                <button class="btn btn-primary btn-add-meal" data-bs-toggle="modal" data-bs-target="#addMealModal">
+                    <i class="fas fa-plus me-2"></i>Add New Meal
+                </button>
             </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-4 text-center">
-                        <small class="text-muted">Prep</small>
-                        <div class="fw-bold">{{ meal.prep_time }}m</div>
-                    </div>
-                    <div class="col-4 text-center">
-                        <small class="text-muted">Cook</small>
-                        <div class="fw-bold">{{ meal.cook_time }}m</div>
-                    </div>
-                    <div class="col-4 text-center">
-                        <small class="text-muted">Serves</small>
-                        <div class="fw-bold">{{ meal.servings }}</div>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <h6 class="text-muted">Ingredients:</h6>
-                    <p class="small">{{ meal.ingredients[:100] }}{% if meal.ingredients|length > 100 %}...{% endif %}</p>
-                </div>
-                
-                {% if meal.instructions %}
-                <div class="mb-3">
-                    <h6 class="text-muted">Instructions:</h6>
-                    <p class="small">{{ meal.instructions[:150] }}{% if meal.instructions|length > 150 %}...{% endif %}</p>
-                </div>
-                {% endif %}
-            </div>
-            <div class="card-footer bg-transparent">
-                <div class="d-flex justify-content-between">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editMeal({{ meal.id }})">
-                        <i class="fas fa-edit"></i> Edit
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs" id="mealsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">
+                        <i class="fas fa-user me-2"></i>My Meals
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMeal({{ meal.id }})">
-                        <i class="fas fa-trash"></i> Delete
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="community-tab" data-bs-toggle="tab" data-bs-target="#community" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>Community Meals
                     </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="default-tab" data-bs-toggle="tab" data-bs-target="#default" type="button" role="tab">
+                        <i class="fas fa-star me-2"></i>Default Meals
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content p-4" id="mealsTabsContent">
+                <!-- Personal Meals Tab -->
+                <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                    {% if personal_meals %}
+                    <div class="row">
+                        {% for meal in personal_meals %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card meal-card">
+                                <div class="card-header meal-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">{{ meal.name }}</h5>
+                                        <span class="badge bg-light text-dark">{{ meal.category|title }}</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Prep</small>
+                                            <div class="fw-bold">{{ meal.prep_time }}m</div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Cook</small>
+                                            <div class="fw-bold">{{ meal.cook_time }}m</div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Serves</small>
+                                            <div class="fw-bold">{{ meal.servings }}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Ingredients:</h6>
+                                        <p class="small">{{ meal.ingredients[:100] }}{% if meal.ingredients|length > 100 %}...{% endif %}</p>
+                                    </div>
+                                    
+                                    {% if meal.instructions %}
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Instructions:</h6>
+                                        <p class="small">{{ meal.instructions[:150] }}{% if meal.instructions|length > 150 %}...{% endif %}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editMeal({{ meal.id }})">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMeal({{ meal.id }})">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-utensils"></i>
+                        <h4>No personal meals yet</h4>
+                        <p>Start by adding your first meal!</p>
+                        <button class="btn btn-primary btn-add-meal" data-bs-toggle="modal" data-bs-target="#addMealModal">
+                            <i class="fas fa-plus me-2"></i>Add Your First Meal
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Community Meals Tab -->
+                <div class="tab-pane fade" id="community" role="tabpanel">
+                    {% if community_meals %}
+                    <div class="row">
+                        {% for meal in community_meals %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card meal-card">
+                                <div class="card-header meal-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">{{ meal.name }}</h5>
+                                        <div>
+                                            <span class="community-badge me-2">Community</span>
+                                            <span class="badge bg-light text-dark">{{ meal.category|title }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small class="text-muted">Shared by: <strong>{{ meal.username }}</strong></small>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Prep</small>
+                                            <div class="fw-bold">{{ meal.prep_time }}m</div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Cook</small>
+                                            <div class="fw-bold">{{ meal.cook_time }}m</div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Serves</small>
+                                            <div class="fw-bold">{{ meal.servings }}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Ingredients:</h6>
+                                        <p class="small">{{ meal.ingredients[:100] }}{% if meal.ingredients|length > 100 %}...{% endif %}</p>
+                                    </div>
+                                    
+                                    {% if meal.instructions %}
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Instructions:</h6>
+                                        <p class="small">{{ meal.instructions[:150] }}{% if meal.instructions|length > 150 %}...{% endif %}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <button class="btn btn-sm btn-outline-success w-100" onclick="addToMyMeals({{ meal.id }})">
+                                        <i class="fas fa-plus me-2"></i>Add to My Meals
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h4>No community meals yet</h4>
+                        <p>Be the first to share a meal with the community!</p>
+                        <button class="btn btn-primary btn-add-meal" data-bs-toggle="modal" data-bs-target="#addMealModal">
+                            <i class="fas fa-plus me-2"></i>Share a Meal
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Default Meals Tab -->
+                <div class="tab-pane fade" id="default" role="tabpanel">
+                    {% if default_meals %}
+                    <div class="row">
+                        {% for meal in default_meals %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card meal-card">
+                                <div class="card-header meal-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">{{ meal.name }}</h5>
+                                        <div>
+                                            <span class="default-badge me-2">Default</span>
+                                            <span class="badge bg-light text-dark">{{ meal.category|title }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Prep</small>
+                                            <div class="fw-bold">{{ meal.prep_time }}m</div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Cook</small>
+                                            <div class="fw-bold">{{ meal.cook_time }}m</div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <small class="text-muted">Serves</small>
+                                            <div class="fw-bold">{{ meal.servings }}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Ingredients:</h6>
+                                        <p class="small">{{ meal.ingredients[:100] }}{% if meal.ingredients|length > 100 %}...{% endif %}</p>
+                                    </div>
+                                    
+                                    {% if meal.instructions %}
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">Instructions:</h6>
+                                        <p class="small">{{ meal.instructions[:150] }}{% if meal.instructions|length > 150 %}...{% endif %}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <button class="btn btn-sm btn-outline-success w-100" onclick="addToMyMeals({{ meal.id }})">
+                                        <i class="fas fa-plus me-2"></i>Add to My Meals
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-star"></i>
+                        <h4>No default meals available</h4>
+                        <p>Default meals will appear here for inspiration.</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="text-center py-5">
-    <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
-    <h4 class="text-muted">No meals yet</h4>
-    <p class="text-muted">Start by adding your first meal!</p>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMealModal">
-        <i class="fas fa-plus"></i> Add Your First Meal
-    </button>
-</div>
-{% endif %}
 
-<script>
-function deleteMeal(mealId) {
-    if (confirm('Are you sure you want to delete this meal?')) {
-        fetch(`/delete_meal/${mealId}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Reload the meals tab content
-                loadMeals();
+    <!-- Add Meal Modal -->
+    <div class="modal fade" id="addMealModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Meal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMealForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mealName" class="form-label">Meal Name</label>
+                                    <input type="text" class="form-control" id="mealName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mealCategory" class="form-label">Category</label>
+                                    <select class="form-select" id="mealCategory" required>
+                                        <option value="">Select Category</option>
+                                        <option value="breakfast">Breakfast</option>
+                                        <option value="lunch">Lunch</option>
+                                        <option value="dinner">Dinner</option>
+                                        <option value="snack">Snack</option>
+                                        <option value="dessert">Dessert</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="prepTime" class="form-label">Prep Time (minutes)</label>
+                                    <input type="number" class="form-control" id="prepTime" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="cookTime" class="form-label">Cook Time (minutes)</label>
+                                    <input type="number" class="form-control" id="cookTime" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="servings" class="form-label">Servings</label>
+                                    <input type="number" class="form-control" id="servings" min="1" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ingredients" class="form-label">Ingredients</label>
+                            <textarea class="form-control" id="ingredients" rows="3" placeholder="List all ingredients..." required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="instructions" class="form-label">Instructions</label>
+                            <textarea class="form-control" id="instructions" rows="4" placeholder="Step-by-step cooking instructions..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="shareWithCommunity">
+                                <label class="form-check-label" for="shareWithCommunity">
+                                    Share with community
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMeal()">Save Meal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function saveMeal() {
+            const formData = {
+                name: document.getElementById('mealName').value,
+                category: document.getElementById('mealCategory').value,
+                prep_time: parseInt(document.getElementById('prepTime').value),
+                cook_time: parseInt(document.getElementById('cookTime').value),
+                servings: parseInt(document.getElementById('servings').value),
+                ingredients: document.getElementById('ingredients').value,
+                instructions: document.getElementById('instructions').value,
+                is_community: document.getElementById('shareWithCommunity').checked
+            };
+
+            fetch('/add_meal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+
+        function deleteMeal(mealId) {
+            if (confirm('Are you sure you want to delete this meal?')) {
+                fetch(`/delete_meal/${mealId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
             }
-        });
-    }
-}
+        }
 
-function editMeal(mealId) {
-    // This would open an edit modal
-    // For now, we'll just show an alert
-    alert('Edit functionality coming soon!');
-}
-</script> 
+        function editMeal(mealId) {
+            alert('Edit functionality coming soon!');
+        }
+
+        function addToMyMeals(mealId) {
+            alert('Add to my meals functionality coming soon!');
+        }
+
+        // Handle tab navigation from URL hash
+        if (window.location.hash === '#community') {
+            document.getElementById('community-tab').click();
+        } else if (window.location.hash === '#default') {
+            document.getElementById('default-tab').click();
+        }
+    </script>
+</body>
+</html> 

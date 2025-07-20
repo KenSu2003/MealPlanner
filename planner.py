@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 import sqlite3
 from datetime import datetime, timedelta
 import calendar
 import json
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -12,6 +13,17 @@ app.secret_key = 'your-secret-key-here'
 def init_db():
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
+    
+    # Create users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     # Create meals table
     cursor.execute('''
@@ -24,7 +36,10 @@ def init_db():
             cook_time INTEGER,
             servings INTEGER,
             category TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            user_id INTEGER,
+            is_community BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
@@ -37,7 +52,9 @@ def init_db():
             unit TEXT,
             category TEXT,
             expiry_date DATE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            user_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
@@ -48,31 +65,116 @@ def init_db():
             date DATE NOT NULL,
             meal_id INTEGER,
             meal_type TEXT,
-            FOREIGN KEY (meal_id) REFERENCES meals (id)
+            user_id INTEGER,
+            FOREIGN KEY (meal_id) REFERENCES meals (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
     conn.commit()
     conn.close()
 
+# Login required decorator
+def login_required(f):
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
 # Initialize database
 init_db()
 
 @app.route('/')
 def index():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
     return render_template('index.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        
+        conn = sqlite3.connect('meal_planner.db')
+        cursor = conn.cursor()
+        
+        # Check if user already exists
+        cursor.execute('SELECT id FROM users WHERE username = ? OR email = ?', (username, email))
+        if cursor.fetchone():
+            flash('Username or email already exists!')
+            conn.close()
+            return render_template('register.html')
+        
+        # Create new user
+        password_hash = generate_password_hash(password)
+        cursor.execute('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', 
+                      (username, email, password_hash))
+        conn.commit()
+        conn.close()
+        
+        flash('Registration successful! Please log in.')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        conn = sqlite3.connect('meal_planner.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, username, password_hash FROM users WHERE username = ?', (username,))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user and check_password_hash(user[2], password):
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password!')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
+
 @app.route('/meals')
+@login_required
 def meals():
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM meals ORDER BY name')
-    meals_data = cursor.fetchall()
+    
+    # Get personal meals
+    cursor.execute('SELECT * FROM meals WHERE user_id = ? AND is_community = FALSE ORDER BY name', (session['user_id'],))
+    personal_meals = cursor.fetchall()
+    
+    # Get community meals (shared by other users)
+    cursor.execute('SELECT m.*, u.username FROM meals m JOIN users u ON m.user_id = u.id WHERE m.is_community = TRUE ORDER BY m.name')
+    community_meals = cursor.fetchall()
+    
+    # Get default meals (system meals)
+    cursor.execute('SELECT * FROM meals WHERE user_id IS NULL ORDER BY name')
+    default_meals = cursor.fetchall()
+    
     conn.close()
     
-    meals_list = []
-    for meal in meals_data:
-        meals_list.append({
+    personal_list = []
+    for meal in personal_meals:
+        personal_list.append({
             'id': meal[0],
             'name': meal[1],
             'ingredients': meal[2],
@@ -80,42 +182,84 @@ def meals():
             'prep_time': meal[4],
             'cook_time': meal[5],
             'servings': meal[6],
-            'category': meal[7]
+            'category': meal[7],
+            'user_id': meal[8],
+            'is_community': meal[9],
+            'type': 'personal'
         })
     
-    return render_template('meals.html', meals=meals_list)
+    community_list = []
+    for meal in community_meals:
+        community_list.append({
+            'id': meal[0],
+            'name': meal[1],
+            'ingredients': meal[2],
+            'instructions': meal[3],
+            'prep_time': meal[4],
+            'cook_time': meal[5],
+            'servings': meal[6],
+            'category': meal[7],
+            'user_id': meal[8],
+            'is_community': meal[9],
+            'username': meal[10],
+            'type': 'community'
+        })
+    
+    default_list = []
+    for meal in default_meals:
+        default_list.append({
+            'id': meal[0],
+            'name': meal[1],
+            'ingredients': meal[2],
+            'instructions': meal[3],
+            'prep_time': meal[4],
+            'cook_time': meal[5],
+            'servings': meal[6],
+            'category': meal[7],
+            'user_id': meal[8],
+            'type': 'default'
+        })
+    
+    return render_template('meals.html', 
+                         personal_meals=personal_list, 
+                         community_meals=community_list, 
+                         default_meals=default_list)
 
 @app.route('/add_meal', methods=['POST'])
+@login_required
 def add_meal():
     data = request.get_json()
     
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (data['name'], data['ingredients'], data['instructions'], 
-          data['prep_time'], data['cook_time'], data['servings'], data['category']))
+          data['prep_time'], data['cook_time'], data['servings'], data['category'], 
+          session['user_id'], data.get('is_community', False)))
     conn.commit()
     conn.close()
     
     return jsonify({'success': True, 'id': cursor.lastrowid})
 
 @app.route('/delete_meal/<int:meal_id>', methods=['DELETE'])
+@login_required
 def delete_meal(meal_id):
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM meals WHERE id = ?', (meal_id,))
+    cursor.execute('DELETE FROM meals WHERE id = ? AND user_id = ?', (meal_id, session['user_id']))
     conn.commit()
     conn.close()
     
     return jsonify({'success': True})
 
 @app.route('/ingredients')
+@login_required
 def ingredients():
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM ingredients ORDER BY name')
+    cursor.execute('SELECT * FROM ingredients WHERE user_id = ? ORDER BY name', (session['user_id'],))
     ingredients_data = cursor.fetchall()
     conn.close()
     
@@ -133,31 +277,34 @@ def ingredients():
     return render_template('ingredients.html', ingredients=ingredients_list)
 
 @app.route('/add_ingredient', methods=['POST'])
+@login_required
 def add_ingredient():
     data = request.get_json()
     
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO ingredients (name, quantity, unit, category, expiry_date)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (data['name'], data['quantity'], data['unit'], data['category'], data['expiry_date']))
+        INSERT INTO ingredients (name, quantity, unit, category, expiry_date, user_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (data['name'], data['quantity'], data['unit'], data['category'], data['expiry_date'], session['user_id']))
     conn.commit()
     conn.close()
     
     return jsonify({'success': True, 'id': cursor.lastrowid})
 
 @app.route('/delete_ingredient/<int:ingredient_id>', methods=['DELETE'])
+@login_required
 def delete_ingredient(ingredient_id):
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM ingredients WHERE id = ?', (ingredient_id,))
+    cursor.execute('DELETE FROM ingredients WHERE id = ? AND user_id = ?', (ingredient_id, session['user_id']))
     conn.commit()
     conn.close()
     
     return jsonify({'success': True})
 
 @app.route('/calendar')
+@login_required
 def calendar_view():
     # Get current month
     now = datetime.now()
@@ -168,10 +315,16 @@ def calendar_view():
     cal = calendar.monthcalendar(year, month)
     month_name = calendar.month_name[month]
     
-    # Get meals for meal planning
+    # Get meals for meal planning (personal + community + default meals)
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT id, name FROM meals ORDER BY name')
+    cursor.execute('''
+        SELECT id, name FROM meals 
+        WHERE (user_id = ? AND is_community = FALSE) 
+           OR (is_community = TRUE) 
+           OR (user_id IS NULL) 
+        ORDER BY name
+    ''', (session['user_id'],))
     meals = cursor.fetchall()
     
     # Get existing meal plan for this month
@@ -182,9 +335,9 @@ def calendar_view():
         SELECT mp.date, mp.meal_type, m.name 
         FROM meal_plan mp 
         JOIN meals m ON mp.meal_id = m.id 
-        WHERE mp.date BETWEEN ? AND ?
+        WHERE mp.date BETWEEN ? AND ? AND mp.user_id = ?
         ORDER BY mp.date
-    ''', (start_date, end_date))
+    ''', (start_date, end_date, session['user_id']))
     meal_plan = cursor.fetchall()
     conn.close()
     
@@ -205,21 +358,22 @@ def calendar_view():
                          meal_plan=meal_plan_dict)
 
 @app.route('/save_meal_plan', methods=['POST'])
+@login_required
 def save_meal_plan():
     data = request.get_json()
     
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     
-    # Clear existing meal plan for this date
-    cursor.execute('DELETE FROM meal_plan WHERE date = ?', (data['date'],))
+    # Clear existing meal plan for this date and user
+    cursor.execute('DELETE FROM meal_plan WHERE date = ? AND user_id = ?', (data['date'], session['user_id']))
     
     # Add new meal plan
     if data['meal_id']:
         cursor.execute('''
-            INSERT INTO meal_plan (date, meal_id, meal_type)
-            VALUES (?, ?, ?)
-        ''', (data['date'], data['meal_id'], data['meal_type']))
+            INSERT INTO meal_plan (date, meal_id, meal_type, user_id)
+            VALUES (?, ?, ?, ?)
+        ''', (data['date'], data['meal_id'], data['meal_type'], session['user_id']))
     
     conn.commit()
     conn.close()
@@ -227,6 +381,7 @@ def save_meal_plan():
     return jsonify({'success': True})
 
 @app.route('/auto_generate_plan', methods=['POST'])
+@login_required
 def auto_generate_plan():
     data = request.get_json()
     year = data['year']
@@ -235,18 +390,23 @@ def auto_generate_plan():
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     
-    # Get all meals
-    cursor.execute('SELECT id FROM meals')
+    # Get available meals (personal + community + default)
+    cursor.execute('''
+        SELECT id FROM meals 
+        WHERE (user_id = ? AND is_community = FALSE) 
+           OR (is_community = TRUE) 
+           OR (user_id IS NULL)
+    ''', (session['user_id'],))
     meal_ids = [row[0] for row in cursor.fetchall()]
     
     if not meal_ids:
         conn.close()
         return jsonify({'success': False, 'message': 'No meals available'})
     
-    # Clear existing meal plan for this month
+    # Clear existing meal plan for this month and user
     start_date = datetime(year, month, 1).date()
     end_date = (datetime(year, month + 1, 1) - timedelta(days=1)).date()
-    cursor.execute('DELETE FROM meal_plan WHERE date BETWEEN ? AND ?', (start_date, end_date))
+    cursor.execute('DELETE FROM meal_plan WHERE date BETWEEN ? AND ? AND user_id = ?', (start_date, end_date, session['user_id']))
     
     # Generate meal plan
     current_date = start_date
@@ -258,9 +418,9 @@ def auto_generate_plan():
             import random
             meal_id = random.choice(meal_ids)
             cursor.execute('''
-                INSERT INTO meal_plan (date, meal_id, meal_type)
-                VALUES (?, ?, ?)
-            ''', (current_date, meal_id, meal_type))
+                INSERT INTO meal_plan (date, meal_id, meal_type, user_id)
+                VALUES (?, ?, ?, ?)
+            ''', (current_date, meal_id, meal_type, session['user_id']))
         current_date += timedelta(days=1)
     
     conn.commit()
