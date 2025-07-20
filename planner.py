@@ -424,12 +424,12 @@ def get_day_meals(date):
 @app.route('/get_meal_details/<int:meal_id>')
 @login_required
 def get_meal_details(meal_id):
-    """Get meal details to determine if it's personal or community"""
+    """Get detailed meal information"""
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT id, name, user_id, is_community
+        SELECT id, name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community
         FROM meals 
         WHERE id = ?
     ''', (meal_id,))
@@ -440,8 +440,14 @@ def get_meal_details(meal_id):
         return jsonify({
             'id': meal[0],
             'name': meal[1],
-            'user_id': meal[2],
-            'is_community': meal[3]
+            'ingredients': meal[2],
+            'instructions': meal[3],
+            'prep_time': meal[4],
+            'cook_time': meal[5],
+            'servings': meal[6],
+            'category': meal[7],
+            'user_id': meal[8],
+            'is_community': meal[9]
         })
     else:
         return jsonify({'error': 'Meal not found'}), 404
