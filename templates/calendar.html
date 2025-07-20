@@ -1,290 +1,512 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3><i class="fas fa-calendar-alt"></i> Monthly Meal Plan - {{ month_name }} {{ year }}</h3>
-    <div>
-        <button class="btn btn-outline-primary me-2" onclick="previousMonth()">
-            <i class="fas fa-chevron-left"></i> Previous
-        </button>
-        <button class="btn btn-primary" onclick="autoGeneratePlan()">
-            <i class="fas fa-magic"></i> Auto Generate
-        </button>
-    </div>
-</div>
-
-<div class="card shadow-sm">
-    <div class="card-body">
-        <!-- Calendar Header -->
-        <div class="row text-center mb-3">
-            <div class="col">Sun</div>
-            <div class="col">Mon</div>
-            <div class="col">Tue</div>
-            <div class="col">Wed</div>
-            <div class="col">Thu</div>
-            <div class="col">Fri</div>
-            <div class="col">Sat</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar - Meal Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #667eea !important;
+        }
+        .nav-link {
+            color: #6c757d !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #667eea !important;
+            transform: translateY(-1px);
+        }
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        .calendar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 1.5rem;
+        }
+        .calendar-grid {
+            padding: 1.5rem;
+        }
+        .calendar-day {
+            min-height: 120px;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin: 2px;
+        }
+        .calendar-day:hover {
+            background-color: rgba(102, 126, 234, 0.05);
+            border-color: #667eea;
+        }
+        .calendar-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .day-number {
+            font-weight: 600;
+            color: #333;
+        }
+        .btn-add-meal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 20px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        .btn-add-meal:hover {
+            transform: scale(1.1);
+        }
+        .meal-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-bottom: 2px;
+            display: block;
+        }
+        .meal-badge.breakfast { background-color: #ffc107; color: #000; }
+        .meal-badge.lunch { background-color: #17a2b8; color: #fff; }
+        .meal-badge.dinner { background-color: #28a745; color: #fff; }
+        .calendar-weekdays {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .stats-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .stats-card .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+        }
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 25px;
+            padding: 8px 20px;
+            transition: all 0.3s ease;
+        }
+        .btn-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .btn-auto-generate {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 8px 20px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-auto-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-utensils me-2"></i>Meal Planner
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('meals') }}">
+                            <i class="fas fa-utensils me-1"></i>Meals
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('ingredients') }}">
+                            <i class="fas fa-carrot me-1"></i>Ingredients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('calendar_view') }}">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>{{ session.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
         </div>
+    </nav>
 
-        <!-- Calendar Grid -->
-        {% for week in calendar %}
-        <div class="row mb-2">
-            {% for day in week %}
-            <div class="col calendar-day" style="min-height: 120px; border: 1px solid #dee2e6; padding: 8px;">
-                {% if day != 0 %}
-                <div class="d-flex justify-content-between align-items-start">
-                    <span class="fw-bold">{{ day }}</span>
-                    <button class="btn btn-sm btn-outline-primary" onclick="openMealPlanModal('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}')">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-                
-                <!-- Meal Plan Display -->
-                {% set date_str = year|string + '-' + '%02d'|format(month) + '-' + '%02d'|format(day) %}
-                {% if date_str in meal_plan %}
-                <div class="mt-2">
-                    {% if 'breakfast' in meal_plan[date_str] %}
-                    <div class="small mb-1">
-                        <span class="badge bg-warning text-dark">B</span>
-                        <small>{{ meal_plan[date_str]['breakfast'][:15] }}{% if meal_plan[date_str]['breakfast']|length > 15 %}...{% endif %}</small>
-                    </div>
-                    {% endif %}
-                    
-                    {% if 'lunch' in meal_plan[date_str] %}
-                    <div class="small mb-1">
-                        <span class="badge bg-info">L</span>
-                        <small>{{ meal_plan[date_str]['lunch'][:15] }}{% if meal_plan[date_str]['lunch']|length > 15 %}...{% endif %}</small>
-                    </div>
-                    {% endif %}
-                    
-                    {% if 'dinner' in meal_plan[date_str] %}
-                    <div class="small mb-1">
-                        <span class="badge bg-success">D</span>
-                        <small>{{ meal_plan[date_str]['dinner'][:15] }}{% if meal_plan[date_str]['dinner']|length > 15 %}...{% endif %}</small>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-                {% else %}
-                <span class="text-muted">&nbsp;</span>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Meal Plan Legend -->
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Legend</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <span class="badge bg-warning text-dark me-2">B</span>
-                    <span>Breakfast</span>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                    <span class="badge bg-info me-2">L</span>
-                    <span>Lunch</span>
-                </div>
-                <div class="d-flex align-items-center">
-                    <span class="badge bg-success me-2">D</span>
-                    <span>Dinner</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> This Month's Stats</h6>
-            </div>
-            <div class="card-body">
-                {% set total_planned = 0 %}
-                {% for date_str, meals in meal_plan.items() %}
-                    {% set total_planned = total_planned + meals|length %}
-                {% endfor %}
-                
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Total Meals Planned:</span>
-                    <span class="fw-bold">{{ total_planned }}</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Days with Plans:</span>
-                    <span class="fw-bold">{{ meal_plan|length }}</span>
-                </div>
+    <div class="container">
+        <div class="main-content">
+            <!-- Calendar Header -->
+            <div class="calendar-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <span>Available Meals:</span>
-                    <span class="fw-bold">{{ meals|length }}</span>
+                    <h2 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>{{ month_name }} {{ year }}
+                    </h2>
+                    <div>
+                        <button class="btn btn-nav me-2" onclick="previousMonth()">
+                            <i class="fas fa-chevron-left me-1"></i>Previous
+                        </button>
+                        <button class="btn btn-auto-generate" onclick="autoGeneratePlan()">
+                            <i class="fas fa-magic me-1"></i>Auto Generate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="calendar-grid">
+                <!-- Weekday Headers -->
+                <div class="row calendar-weekdays text-center">
+                    <div class="col">Sunday</div>
+                    <div class="col">Monday</div>
+                    <div class="col">Tuesday</div>
+                    <div class="col">Wednesday</div>
+                    <div class="col">Thursday</div>
+                    <div class="col">Friday</div>
+                    <div class="col">Saturday</div>
+                </div>
+
+                <!-- Calendar Days -->
+                {% for week in calendar %}
+                <div class="row mb-2">
+                    {% for day in week %}
+                    <div class="col">
+                        {% if day != 0 %}
+                        <div class="calendar-day">
+                            <div class="calendar-day-header">
+                                <span class="day-number">{{ day }}</span>
+                                <button class="btn btn-add-meal" onclick="openMealPlanModal('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Meal Plan Display -->
+                            {% set date_str = year|string + '-' + '%02d'|format(month) + '-' + '%02d'|format(day) %}
+                            {% if date_str in meal_plan %}
+                            <div class="meal-plans">
+                                {% if 'breakfast' in meal_plan[date_str] %}
+                                <span class="meal-badge breakfast">
+                                    <i class="fas fa-sun me-1"></i>{{ meal_plan[date_str]['breakfast'][:12] }}{% if meal_plan[date_str]['breakfast']|length > 12 %}...{% endif %}
+                                </span>
+                                {% endif %}
+                                
+                                {% if 'lunch' in meal_plan[date_str] %}
+                                <span class="meal-badge lunch">
+                                    <i class="fas fa-cloud-sun me-1"></i>{{ meal_plan[date_str]['lunch'][:12] }}{% if meal_plan[date_str]['lunch']|length > 12 %}...{% endif %}
+                                </span>
+                                {% endif %}
+                                
+                                {% if 'dinner' in meal_plan[date_str] %}
+                                <span class="meal-badge dinner">
+                                    <i class="fas fa-moon me-1"></i>{{ meal_plan[date_str]['dinner'][:12] }}{% if meal_plan[date_str]['dinner']|length > 12 %}...{% endif %}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="calendar-day" style="background-color: #f8f9fa;">
+                            <span class="text-muted">&nbsp;</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mt-4">
+            <div class="col-md-6 mb-4">
+                <div class="card stats-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Legend</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="meal-badge breakfast me-3">B</span>
+                            <span>Breakfast</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="meal-badge lunch me-3">L</span>
+                            <span>Lunch</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="meal-badge dinner me-3">D</span>
+                            <span>Dinner</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card stats-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>This Month's Stats</h6>
+                    </div>
+                    <div class="card-body">
+                        {% set total_planned = 0 %}
+                        {% for date_str, meals in meal_plan.items() %}
+                            {% set total_planned = total_planned + meals|length %}
+                        {% endfor %}
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span>Total Meals Planned:</span>
+                            <span class="fw-bold text-primary">{{ total_planned }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span>Days with Plans:</span>
+                            <span class="fw-bold text-success">{{ meal_plan|length }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Available Meals:</span>
+                            <span class="fw-bold text-info">{{ meals|length }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Meal Plan Modal -->
-<div class="modal fade" id="mealPlanModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Plan Meals for <span id="planDate"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="mealPlanForm">
-                    <input type="hidden" id="planDateInput">
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Breakfast</label>
-                        <select class="form-select" id="breakfastMeal">
-                            <option value="">No meal planned</option>
-                            {% for meal in meals %}
-                            <option value="{{ meal[0] }}">{{ meal[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Lunch</label>
-                        <select class="form-select" id="lunchMeal">
-                            <option value="">No meal planned</option>
-                            {% for meal in meals %}
-                            <option value="{{ meal[0] }}">{{ meal[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Dinner</label>
-                        <select class="form-select" id="dinnerMeal">
-                            <option value="">No meal planned</option>
-                            {% for meal in meals %}
-                            <option value="{{ meal[0] }}">{{ meal[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveMealPlan()">Save Plan</button>
+    <!-- Meal Plan Modal -->
+    <div class="modal fade" id="mealPlanModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Plan Meals for <span id="planDate"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="mealPlanForm">
+                        <input type="hidden" id="planDateInput">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-sun text-warning me-2"></i>Breakfast
+                            </label>
+                            <select class="form-select" id="breakfastMeal">
+                                <option value="">No meal planned</option>
+                                {% for meal in meals %}
+                                <option value="{{ meal[0] }}">{{ meal[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-cloud-sun text-info me-2"></i>Lunch
+                            </label>
+                            <select class="form-select" id="lunchMeal">
+                                <option value="">No meal planned</option>
+                                {% for meal in meals %}
+                                <option value="{{ meal[0] }}">{{ meal[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-moon text-success me-2"></i>Dinner
+                            </label>
+                            <select class="form-select" id="dinnerMeal">
+                                <option value="">No meal planned</option>
+                                {% for meal in meals %}
+                                <option value="{{ meal[0] }}">{{ meal[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMealPlan()">Save Plan</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-let currentYear = {{ year }};
-let currentMonth = {{ month }};
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentYear = {{ year }};
+        let currentMonth = {{ month }};
 
-function openMealPlanModal(date) {
-    document.getElementById('planDate').textContent = date;
-    document.getElementById('planDateInput').value = date;
-    
-    // Load existing meal plan for this date
-    const dateStr = date;
-    const existingPlan = {{ meal_plan|tojson }};
-    
-    if (existingPlan[dateStr]) {
-        if (existingPlan[dateStr]['breakfast']) {
-            // Find meal ID by name
-            const breakfastMeal = {{ meals|tojson }}.find(m => m[1] === existingPlan[dateStr]['breakfast']);
-            if (breakfastMeal) {
-                document.getElementById('breakfastMeal').value = breakfastMeal[0];
+        function openMealPlanModal(date) {
+            document.getElementById('planDate').textContent = date;
+            document.getElementById('planDateInput').value = date;
+            
+            // Load existing meal plan for this date
+            const dateStr = date;
+            const existingPlan = {{ meal_plan|tojson }};
+            
+            if (existingPlan[dateStr]) {
+                if (existingPlan[dateStr]['breakfast']) {
+                    // Find meal ID by name
+                    const breakfastMeal = {{ meals|tojson }}.find(m => m[1] === existingPlan[dateStr]['breakfast']);
+                    if (breakfastMeal) {
+                        document.getElementById('breakfastMeal').value = breakfastMeal[0];
+                    }
+                }
+                if (existingPlan[dateStr]['lunch']) {
+                    const lunchMeal = {{ meals|tojson }}.find(m => m[1] === existingPlan[dateStr]['lunch']);
+                    if (lunchMeal) {
+                        document.getElementById('lunchMeal').value = lunchMeal[0];
+                    }
+                }
+                if (existingPlan[dateStr]['dinner']) {
+                    const dinnerMeal = {{ meals|tojson }}.find(m => m[1] === existingPlan[dateStr]['dinner']);
+                    if (dinnerMeal) {
+                        document.getElementById('dinnerMeal').value = dinnerMeal[0];
+                    }
+                }
+            } else {
+                // Clear form if no existing plan
+                document.getElementById('breakfastMeal').value = '';
+                document.getElementById('lunchMeal').value = '';
+                document.getElementById('dinnerMeal').value = '';
             }
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('mealPlanModal')).show();
         }
-        if (existingPlan[dateStr]['lunch']) {
-            const lunchMeal = {{ meals|tojson }}.find(m => m[1] === existingPlan[dateStr]['lunch']);
-            if (lunchMeal) {
-                document.getElementById('lunchMeal').value = lunchMeal[0];
-            }
-        }
-        if (existingPlan[dateStr]['dinner']) {
-            const dinnerMeal = {{ meals|tojson }}.find(m => m[1] === existingPlan[dateStr]['dinner']);
-            if (dinnerMeal) {
-                document.getElementById('dinnerMeal').value = dinnerMeal[0];
-            }
-        }
-    } else {
-        // Clear form
-        document.getElementById('breakfastMeal').value = '';
-        document.getElementById('lunchMeal').value = '';
-        document.getElementById('dinnerMeal').value = '';
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('mealPlanModal'));
-    modal.show();
-}
 
-function saveMealPlan() {
-    const date = document.getElementById('planDateInput').value;
-    const breakfast = document.getElementById('breakfastMeal').value;
-    const lunch = document.getElementById('lunchMeal').value;
-    const dinner = document.getElementById('dinnerMeal').value;
-    
-    // Save each meal type
-    const mealTypes = [
-        { type: 'breakfast', mealId: breakfast },
-        { type: 'lunch', mealId: lunch },
-        { type: 'dinner', mealId: dinner }
-    ];
-    
-    let savedCount = 0;
-    mealTypes.forEach(meal => {
-        if (meal.mealId) {
-            fetch('/save_meal_plan', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    date: date,
-                    meal_id: meal.mealId,
-                    meal_type: meal.type
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                savedCount++;
-                if (savedCount === mealTypes.length) {
-                    bootstrap.Modal.getInstance(document.getElementById('mealPlanModal')).hide();
-                    loadCalendar();
+        function saveMealPlan() {
+            const date = document.getElementById('planDateInput').value;
+            const breakfast = document.getElementById('breakfastMeal').value;
+            const lunch = document.getElementById('lunchMeal').value;
+            const dinner = document.getElementById('dinnerMeal').value;
+            
+            const mealPlan = {};
+            
+            if (breakfast) {
+                mealPlan.breakfast = breakfast;
+            }
+            if (lunch) {
+                mealPlan.lunch = lunch;
+            }
+            if (dinner) {
+                mealPlan.dinner = dinner;
+            }
+            
+            // Save each meal type
+            const mealTypes = ['breakfast', 'lunch', 'dinner'];
+            mealTypes.forEach(mealType => {
+                if (mealPlan[mealType]) {
+                    fetch('/save_meal_plan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            date: date,
+                            meal_id: mealPlan[mealType],
+                            meal_type: mealType
+                        })
+                    });
                 }
             });
-        } else {
-            savedCount++;
+            
+            // Close modal and reload page
+            bootstrap.Modal.getInstance(document.getElementById('mealPlanModal')).hide();
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         }
-    });
-}
 
-function previousMonth() {
-    // This would navigate to the previous month
-    // For now, we'll just reload the current month
-    loadCalendar();
-}
-
-function autoGeneratePlan() {
-    const data = {
-        year: currentYear,
-        month: currentMonth
-    };
-
-    fetch('/auto_generate_plan', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadCalendar();
-        } else {
-            alert(data.message || 'Failed to generate plan');
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            window.location.href = `/calendar?year=${currentYear}&month=${currentMonth}`;
         }
-    });
-}
-</script> 
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+            window.location.href = `/calendar?year=${currentYear}&month=${currentMonth}`;
+        }
+
+        function autoGeneratePlan() {
+            if (confirm('This will generate a random meal plan for the entire month. Continue?')) {
+                fetch('/auto_generate_plan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        year: currentYear,
+                        month: currentMonth
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error generating meal plan: ' + data.message);
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html> 
