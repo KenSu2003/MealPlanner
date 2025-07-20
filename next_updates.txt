@@ -3,3 +3,7 @@
 3. take in to account of portion size
 4. Later on find some way to incorporate avaialbe ingredients in to the planning
 5. have a siddebar that allows drag and drop of meals on the the calendar
+6. In my meals need to allow users to edit the meal by either the edit button or pressin on the box
+7. The share to comunity should be a slider icon not a checkbox icon.
+8. For the Meal Details only show the name, cook time, calroeis and ingredients, then have a detal bar. 
+9. Favorties from comminuty can be added to user's meal.

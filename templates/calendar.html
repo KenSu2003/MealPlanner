@@ -146,6 +146,87 @@
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
+
+        /* Drag and Drop Styles */
+        .meal-drop-zone {
+            min-height: 150px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .meal-drop-zone.drag-over {
+            border-color: #007bff;
+            background-color: #f8f9ff;
+            transform: scale(1.02);
+        }
+
+        .meal-drop-zone.drag-over::after {
+            content: "Drop here to replace meal";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #007bff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10;
+        }
+
+        .available-meals-section {
+            border-top: 2px solid #e9ecef;
+            padding-top: 20px;
+        }
+
+        .available-meals-bar {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+            min-height: 80px;
+            align-items: center;
+        }
+
+        .draggable-meal {
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 120px;
+            max-width: 150px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            text-align: center;
+            user-select: none;
+        }
+
+        .draggable-meal:hover {
+            background-color: #e9ecef;
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .draggable-meal:active {
+            cursor: grabbing;
+        }
+
+        .draggable-meal.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .meal-card {
+            transition: all 0.3s ease;
+        }
+
+        .meal-card.drag-over {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(0,123,255,0.3);
+        }
     </style>
 </head>
 <body>
@@ -421,7 +502,7 @@
 
     <!-- Day Details Modal -->
     <div class="modal fade" id="dayDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Meal Details for <span id="detailDate"></span></h5>
@@ -434,6 +515,24 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="mt-2">Loading meal details...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Available Meals Bar -->
+                    <div class="available-meals-section mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">
+                                <i class="fas fa-utensils me-2"></i>Available Meals - Drag to replace any meal above
+                            </h6>
+                            <button class="btn btn-sm btn-outline-primary" id="toggleCommunityMeals" onclick="toggleCommunityMeals()">
+                                <i class="fas fa-plus me-1"></i>Community Meals
+                            </button>
+                        </div>
+                        <div class="available-meals-bar" id="availableMealsBar">
+                            <!-- Personal meals will be populated here -->
+                        </div>
+                        <div class="available-meals-bar" id="communityMealsBar" style="display: none;">
+                            <!-- Community meals will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -611,6 +710,9 @@
             const modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
             modal.show();
             
+            // Populate available meals bar
+            populateAvailableMeals();
+            
             // Fetch day details
             fetch(`/get_day_meals/${date}`)
                 .then(response => response.json())
@@ -622,7 +724,7 @@
                             <div class="text-center py-4">
                                 <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
                                 <h5 class="text-muted">No meals planned for this day</h5>
-                                <p class="text-muted">Click the + button to add meals to this day</p>
+                                <p class="text-muted">Drag meals from below or click the + button to add meals to this day</p>
                             </div>
                         `;
                     } else {
@@ -639,13 +741,13 @@
                                 const meal = data[mealType.key];
                                 html += `
                                     <div class="col-md-4 mb-4">
-                                        <div class="card h-100">
+                                        <div class="card h-100 meal-card" data-meal-type="${mealType.key}">
                                             <div class="card-header bg-${mealType.color} text-white">
                                                 <h6 class="mb-0">
                                                     <i class="${mealType.icon} me-2"></i>${mealType.title}
                                                 </h6>
                                             </div>
-                                            <div class="card-body">
+                                            <div class="card-body meal-drop-zone" data-meal-type="${mealType.key}" data-date="${date}">
                                                 <h5 class="card-title">${meal.name}</h5>
                                                 <div class="row mb-3">
                                                     <div class="col-4 text-center">
@@ -679,11 +781,16 @@
                             } else {
                                 html += `
                                     <div class="col-md-4 mb-4">
-                                        <div class="card h-100 border-dashed">
-                                            <div class="card-body text-center py-5">
+                                        <div class="card h-100 meal-card border-dashed" data-meal-type="${mealType.key}">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">
+                                                    <i class="${mealType.icon} me-2"></i>${mealType.title}
+                                                </h6>
+                                            </div>
+                                            <div class="card-body meal-drop-zone text-center py-5" data-meal-type="${mealType.key}" data-date="${date}">
                                                 <i class="${mealType.icon} fa-2x text-muted mb-3"></i>
                                                 <h6 class="text-muted">No ${mealType.title}</h6>
-                                                <p class="small text-muted">No meal planned for ${mealType.title.toLowerCase()}</p>
+                                                <p class="small text-muted">Drag a meal here to add ${mealType.title.toLowerCase()}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -693,6 +800,9 @@
                         
                         html += '</div>';
                         content.innerHTML = html;
+                        
+                        // Setup drag and drop after content is loaded
+                        setupDragAndDrop();
                     }
                 })
                 .catch(error => {
@@ -705,6 +815,178 @@
                         </div>
                     `;
                 });
+        }
+
+        function populateAvailableMeals() {
+            const personalMealsBar = document.getElementById('availableMealsBar');
+            const communityMealsBar = document.getElementById('communityMealsBar');
+            
+            // Get separated meal data from backend
+            const personalMeals = {{ personal_meals|tojson }};
+            const communityMeals = {{ community_meals|tojson }};
+            
+            // Update the meal bars
+            updateMealBars(personalMeals, communityMeals);
+        }
+        
+        function updateMealBars(personalMeals, communityMeals) {
+            const personalMealsBar = document.getElementById('availableMealsBar');
+            const communityMealsBar = document.getElementById('communityMealsBar');
+            
+            // Populate personal meals
+            let personalHtml = '';
+            personalMeals.forEach(meal => {
+                personalHtml += `
+                    <div class="draggable-meal" 
+                         draggable="true" 
+                         data-meal-id="${meal[0]}" 
+                         data-meal-name="${meal[1]}">
+                        <div class="fw-bold">${meal[1]}</div>
+                        <small class="text-muted">Your meal</small>
+                    </div>
+                `;
+            });
+            personalMealsBar.innerHTML = personalHtml;
+            
+            // Populate community meals
+            let communityHtml = '';
+            communityMeals.forEach(meal => {
+                communityHtml += `
+                    <div class="draggable-meal" 
+                         draggable="true" 
+                         data-meal-id="${meal[0]}" 
+                         data-meal-name="${meal[1]}">
+                        <div class="fw-bold">${meal[1]}</div>
+                        <small class="text-muted">Community meal</small>
+                    </div>
+                `;
+            });
+            communityMealsBar.innerHTML = communityHtml;
+        }
+        
+        function toggleCommunityMeals() {
+            const communityBar = document.getElementById('communityMealsBar');
+            const toggleBtn = document.getElementById('toggleCommunityMeals');
+            
+            if (communityBar.style.display === 'none') {
+                communityBar.style.display = 'flex';
+                toggleBtn.innerHTML = '<i class="fas fa-minus me-1"></i>Hide Community Meals';
+                toggleBtn.classList.remove('btn-outline-primary');
+                toggleBtn.classList.add('btn-outline-secondary');
+            } else {
+                communityBar.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fas fa-plus me-1"></i>Community Meals';
+                toggleBtn.classList.remove('btn-outline-secondary');
+                toggleBtn.classList.add('btn-outline-primary');
+            }
+            
+            // Re-setup drag and drop for newly visible elements
+            setupDragAndDrop();
+        }
+
+        function setupDragAndDrop() {
+            const draggableMeals = document.querySelectorAll('.draggable-meal');
+            const dropZones = document.querySelectorAll('.meal-drop-zone');
+
+            // Setup draggable meals
+            draggableMeals.forEach(meal => {
+                meal.addEventListener('dragstart', handleDragStart);
+                meal.addEventListener('dragend', handleDragEnd);
+            });
+
+            // Setup drop zones
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                mealId: e.target.dataset.mealId,
+                mealName: e.target.dataset.mealName
+            }));
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.target.closest('.meal-drop-zone').classList.add('drag-over');
+            e.target.closest('.meal-card').classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            if (!e.target.closest('.meal-drop-zone').contains(e.relatedTarget)) {
+                e.target.closest('.meal-drop-zone').classList.remove('drag-over');
+                e.target.closest('.meal-card').classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.meal-drop-zone');
+            const mealType = dropZone.dataset.mealType;
+            const date = dropZone.dataset.date;
+            
+            dropZone.classList.remove('drag-over');
+            dropZone.closest('.meal-card').classList.remove('drag-over');
+            
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const mealId = data.mealId;
+            const mealName = data.mealName;
+            
+            // Save the meal plan
+            fetch('/save_meal_plan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    date: date,
+                    meal_id: mealId,
+                    meal_type: mealType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh the day details
+                    viewDayDetails(date);
+                    // Show success message
+                    showToast('Meal updated successfully!', 'success');
+                } else {
+                    showToast('Error updating meal', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving meal:', error);
+                showToast('Error updating meal', 'error');
+            });
+        }
+
+        function showToast(message, type) {
+            // Create a simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
         }
     </script>
 </body>

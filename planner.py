@@ -318,14 +318,25 @@ def calendar_view():
     # Get meals for meal planning (personal + community + default meals)
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
+    
+    # Get personal meals
     cursor.execute('''
         SELECT id, name FROM meals 
-        WHERE (user_id = ? AND is_community = FALSE) 
-           OR (is_community = TRUE) 
-           OR (user_id IS NULL) 
+        WHERE user_id = ? AND is_community = FALSE
         ORDER BY name
     ''', (session['user_id'],))
-    meals = cursor.fetchall()
+    personal_meals = cursor.fetchall()
+    
+    # Get community meals (including former default meals)
+    cursor.execute('''
+        SELECT id, name FROM meals 
+        WHERE is_community = TRUE
+        ORDER BY name
+    ''')
+    community_meals = cursor.fetchall()
+    
+    # Combine all meals for backward compatibility
+    meals = personal_meals + community_meals
     
     # Get ingredients for the user
     cursor.execute('SELECT * FROM ingredients WHERE user_id = ? ORDER BY name', (session['user_id'],))
@@ -370,6 +381,8 @@ def calendar_view():
                          year=year,
                          month=month,
                          meals=meals,
+                         personal_meals=personal_meals,
+                         community_meals=community_meals,
                          ingredients=ingredients_list,
                          meal_plan=meal_plan_dict)
 
@@ -407,6 +420,31 @@ def get_day_meals(date):
     
     conn.close()
     return jsonify(day_meals)
+
+@app.route('/get_meal_details/<int:meal_id>')
+@login_required
+def get_meal_details(meal_id):
+    """Get meal details to determine if it's personal or community"""
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT id, name, user_id, is_community
+        FROM meals 
+        WHERE id = ?
+    ''', (meal_id,))
+    meal = cursor.fetchone()
+    conn.close()
+    
+    if meal:
+        return jsonify({
+            'id': meal[0],
+            'name': meal[1],
+            'user_id': meal[2],
+            'is_community': meal[3]
+        })
+    else:
+        return jsonify({'error': 'Meal not found'}), 404
 
 @app.route('/save_meal_plan', methods=['POST'])
 @login_required
