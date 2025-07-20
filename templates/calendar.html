@@ -139,6 +139,13 @@
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
             color: white;
         }
+        .border-dashed {
+            border: 2px dashed #dee2e6 !important;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
@@ -226,10 +233,10 @@
                     {% for day in week %}
                     <div class="col">
                         {% if day != 0 %}
-                        <div class="calendar-day">
+                        <div class="calendar-day" onclick="viewDayDetails('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}')" style="cursor: pointer;">
                             <div class="calendar-day-header">
                                 <span class="day-number">{{ day }}</span>
-                                <button class="btn btn-add-meal" onclick="openMealPlanModal('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}')">
+                                <button class="btn btn-add-meal" onclick="event.stopPropagation(); openMealPlanModal('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}')" title="Add Meal">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -272,7 +279,7 @@
 
         <!-- Stats Cards -->
         <div class="row mt-4">
-            <div class="col-md-6 mb-4">
+            <div class="col-md-4 mb-4">
                 <div class="card stats-card">
                     <div class="card-header">
                         <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Legend</h6>
@@ -294,7 +301,7 @@
                 </div>
             </div>
             
-            <div class="col-md-6 mb-4">
+            <div class="col-md-4 mb-4">
                 <div class="card stats-card">
                     <div class="card-header">
                         <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>This Month's Stats</h6>
@@ -317,6 +324,38 @@
                             <span>Available Meals:</span>
                             <span class="fw-bold text-info">{{ meals|length }}</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card stats-card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-carrot me-2"></i>Your Ingredients</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if ingredients %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span>Total Ingredients:</span>
+                                <span class="fw-bold text-warning">{{ ingredients|length }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span>Categories:</span>
+                                <span class="fw-bold text-info">
+                                    {% set categories = ingredients|map(attribute='category')|unique|list %}
+                                    {{ categories|length }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Expiring Soon:</span>
+                                <span class="fw-bold text-danger">
+                                    {% set expiring = ingredients|selectattr('expiry_date')|list %}
+                                    {{ expiring|length }}
+                                </span>
+                            </div>
+                        {% else %}
+                            <p class="text-muted mb-0">No ingredients added yet</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -380,6 +419,31 @@
         </div>
     </div>
 
+    <!-- Day Details Modal -->
+    <div class="modal fade" id="dayDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Meal Details for <span id="detailDate"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="dayMealsContent">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading meal details...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentYear = {{ year }};
@@ -430,22 +494,12 @@
             const lunch = document.getElementById('lunchMeal').value;
             const dinner = document.getElementById('dinnerMeal').value;
             
-            const mealPlan = {};
+            // Create array of promises for all meal saves
+            const savePromises = [];
             
+            // Save breakfast if selected
             if (breakfast) {
-                mealPlan.breakfast = breakfast;
-            }
-            if (lunch) {
-                mealPlan.lunch = lunch;
-            }
-            if (dinner) {
-                mealPlan.dinner = dinner;
-            }
-            
-            // Save each meal type
-            const mealTypes = ['breakfast', 'lunch', 'dinner'];
-            mealTypes.forEach(mealType => {
-                if (mealPlan[mealType]) {
+                savePromises.push(
                     fetch('/save_meal_plan', {
                         method: 'POST',
                         headers: {
@@ -453,18 +507,60 @@
                         },
                         body: JSON.stringify({
                             date: date,
-                            meal_id: mealPlan[mealType],
-                            meal_type: mealType
+                            meal_id: breakfast,
+                            meal_type: 'breakfast'
                         })
-                    });
-                }
-            });
+                    })
+                );
+            }
             
-            // Close modal and reload page
-            bootstrap.Modal.getInstance(document.getElementById('mealPlanModal')).hide();
-            setTimeout(() => {
-                location.reload();
-            }, 500);
+            // Save lunch if selected
+            if (lunch) {
+                savePromises.push(
+                    fetch('/save_meal_plan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            date: date,
+                            meal_id: lunch,
+                            meal_type: 'lunch'
+                        })
+                    })
+                );
+            }
+            
+            // Save dinner if selected
+            if (dinner) {
+                savePromises.push(
+                    fetch('/save_meal_plan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            date: date,
+                            meal_id: dinner,
+                            meal_type: 'dinner'
+                        })
+                    })
+                );
+            }
+            
+            // Wait for all saves to complete
+            Promise.all(savePromises)
+                .then(() => {
+                    // Close modal and reload page
+                    bootstrap.Modal.getInstance(document.getElementById('mealPlanModal')).hide();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error('Error saving meal plan:', error);
+                    alert('Error saving meal plan. Please try again.');
+                });
         }
 
         function previousMonth() {
@@ -506,6 +602,109 @@
                     }
                 });
             }
+        }
+
+        function viewDayDetails(date) {
+            document.getElementById('detailDate').textContent = date;
+            
+            // Show modal with loading state
+            const modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
+            modal.show();
+            
+            // Fetch day details
+            fetch(`/get_day_meals/${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    const content = document.getElementById('dayMealsContent');
+                    
+                    if (Object.keys(data).length === 0) {
+                        content.innerHTML = `
+                            <div class="text-center py-4">
+                                <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No meals planned for this day</h5>
+                                <p class="text-muted">Click the + button to add meals to this day</p>
+                            </div>
+                        `;
+                    } else {
+                        let html = '<div class="row">';
+                        
+                        const mealTypes = [
+                            { key: 'breakfast', title: 'Breakfast', icon: 'fas fa-sun', color: 'warning' },
+                            { key: 'lunch', title: 'Lunch', icon: 'fas fa-cloud-sun', color: 'info' },
+                            { key: 'dinner', title: 'Dinner', icon: 'fas fa-moon', color: 'success' }
+                        ];
+                        
+                        mealTypes.forEach(mealType => {
+                            if (data[mealType.key]) {
+                                const meal = data[mealType.key];
+                                html += `
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-${mealType.color} text-white">
+                                                <h6 class="mb-0">
+                                                    <i class="${mealType.icon} me-2"></i>${mealType.title}
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <h5 class="card-title">${meal.name}</h5>
+                                                <div class="row mb-3">
+                                                    <div class="col-4 text-center">
+                                                        <small class="text-muted">Prep</small>
+                                                        <div class="fw-bold">${meal.prep_time}m</div>
+                                                    </div>
+                                                    <div class="col-4 text-center">
+                                                        <small class="text-muted">Cook</small>
+                                                        <div class="fw-bold">${meal.cook_time}m</div>
+                                                    </div>
+                                                    <div class="col-4 text-center">
+                                                        <small class="text-muted">Serves</small>
+                                                        <div class="fw-bold">${meal.servings}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <h6 class="text-muted">Ingredients:</h6>
+                                                    <p class="small">${meal.ingredients}</p>
+                                                </div>
+                                                ${meal.instructions ? `
+                                                <div class="mb-3">
+                                                    <h6 class="text-muted">Instructions:</h6>
+                                                    <p class="small">${meal.instructions}</p>
+                                                </div>
+                                                ` : ''}
+                                                <span class="badge bg-secondary">${meal.category}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                html += `
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100 border-dashed">
+                                            <div class="card-body text-center py-5">
+                                                <i class="${mealType.icon} fa-2x text-muted mb-3"></i>
+                                                <h6 class="text-muted">No ${mealType.title}</h6>
+                                                <p class="small text-muted">No meal planned for ${mealType.title.toLowerCase()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+                        
+                        html += '</div>';
+                        content.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching day details:', error);
+                    document.getElementById('dayMealsContent').innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                            <h5 class="text-danger">Error loading meal details</h5>
+                            <p class="text-muted">Please try again later</p>
+                        </div>
+                    `;
+                });
         }
     </script>
 </body>

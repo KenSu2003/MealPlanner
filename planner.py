@@ -327,6 +327,21 @@ def calendar_view():
     ''', (session['user_id'],))
     meals = cursor.fetchall()
     
+    # Get ingredients for the user
+    cursor.execute('SELECT * FROM ingredients WHERE user_id = ? ORDER BY name', (session['user_id'],))
+    ingredients_data = cursor.fetchall()
+    
+    ingredients_list = []
+    for ingredient in ingredients_data:
+        ingredients_list.append({
+            'id': ingredient[0],
+            'name': ingredient[1],
+            'quantity': ingredient[2],
+            'unit': ingredient[3],
+            'category': ingredient[4],
+            'expiry_date': ingredient[5]
+        })
+    
     # Get existing meal plan for this month
     start_date = datetime(year, month, 1).date()
     end_date = (datetime(year, month + 1, 1) - timedelta(days=1)).date()
@@ -355,7 +370,43 @@ def calendar_view():
                          year=year,
                          month=month,
                          meals=meals,
+                         ingredients=ingredients_list,
                          meal_plan=meal_plan_dict)
+
+@app.route('/get_day_meals/<date>')
+@login_required
+def get_day_meals(date):
+    """Get detailed meal information for a specific day"""
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Get meal plan for the specific date
+    cursor.execute('''
+        SELECT mp.meal_type, m.id, m.name, m.ingredients, m.instructions, m.prep_time, m.cook_time, m.servings, m.category
+        FROM meal_plan mp 
+        JOIN meals m ON mp.meal_id = m.id 
+        WHERE mp.date = ? AND mp.user_id = ?
+        ORDER BY mp.meal_type
+    ''', (date, session['user_id']))
+    meal_plans = cursor.fetchall()
+    
+    # Organize meals by type
+    day_meals = {}
+    for meal in meal_plans:
+        meal_type = meal[0]
+        day_meals[meal_type] = {
+            'id': meal[1],
+            'name': meal[2],
+            'ingredients': meal[3],
+            'instructions': meal[4],
+            'prep_time': meal[5],
+            'cook_time': meal[6],
+            'servings': meal[7],
+            'category': meal[8]
+        }
+    
+    conn.close()
+    return jsonify(day_meals)
 
 @app.route('/save_meal_plan', methods=['POST'])
 @login_required
@@ -365,8 +416,9 @@ def save_meal_plan():
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     
-    # Clear existing meal plan for this date and user
-    cursor.execute('DELETE FROM meal_plan WHERE date = ? AND user_id = ?', (data['date'], session['user_id']))
+    # Clear existing meal plan for this specific meal type, date and user
+    cursor.execute('DELETE FROM meal_plan WHERE date = ? AND meal_type = ? AND user_id = ?', 
+                   (data['date'], data['meal_type'], session['user_id']))
     
     # Add new meal plan
     if data['meal_id']:

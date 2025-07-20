@@ -1,0 +1,5 @@
+1. have a slider that allows user added meal to be shared in to community
+2. allow people to click in the the calendar to get a more sepcific about the meal that day
+3. take in to account of portion size
+4. Later on find some way to incorporate avaialbe ingredients in to the planning
+5. have a siddebar that allows drag and drop of meals on the the calendar
