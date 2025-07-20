@@ -1,0 +1,138 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="fas fa-carrot"></i> My Ingredients</h3>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngredientModal">
+        <i class="fas fa-plus"></i> Add New Ingredient
+    </button>
+</div>
+
+{% if ingredients %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Category</th>
+                        <th>Expiry Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ingredient in ingredients %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-circle text-{{ 'success' if ingredient.expiry_date and ingredient.expiry_date > today else 'warning' if ingredient.expiry_date and ingredient.expiry_date <= today else 'secondary' }} me-2"></i>
+                                <strong>{{ ingredient.name }}</strong>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ ingredient.category|title }}</span>
+                        </td>
+                        <td>
+                            {% if ingredient.expiry_date %}
+                                <span class="text-{{ 'success' if ingredient.expiry_date > today else 'danger' }}">
+                                    {{ ingredient.expiry_date }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">No expiry</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteIngredient({{ ingredient.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Category Summary -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-pie"></i> By Category</h6>
+            </div>
+            <div class="card-body">
+                <div id="categoryChart">
+                    <!-- Category breakdown will be shown here -->
+                    {% set categories = {} %}
+                    {% for ingredient in ingredients %}
+                        {% set _ = categories.update({ingredient.category: categories.get(ingredient.category, 0) + 1}) %}
+                    {% endfor %}
+                    
+                    {% for category, count in categories.items() %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary">{{ category|title }}</span>
+                        <span class="fw-bold">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Expiring Soon</h6>
+            </div>
+            <div class="card-body">
+                {% set expiring_soon = [] %}
+                {% for ingredient in ingredients %}
+                    {% if ingredient.expiry_date and ingredient.expiry_date <= today %}
+                        {% set _ = expiring_soon.append(ingredient) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if expiring_soon %}
+                    {% for ingredient in expiring_soon[:5] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>{{ ingredient.name }}</span>
+                        <span class="text-danger">{{ ingredient.expiry_date }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">No ingredients expiring soon!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-carrot fa-3x text-muted mb-3"></i>
+    <h4 class="text-muted">No ingredients yet</h4>
+    <p class="text-muted">Start by adding ingredients to your pantry!</p>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngredientModal">
+        <i class="fas fa-plus"></i> Add Your First Ingredient
+    </button>
+</div>
+{% endif %}
+
+<script>
+function deleteIngredient(ingredientId) {
+    if (confirm('Are you sure you want to delete this ingredient?')) {
+        fetch(`/delete_ingredient/${ingredientId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the ingredients tab content
+                loadIngredients();
+            }
+        });
+    }
+}
+</script> 
