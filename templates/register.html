@@ -13,57 +13,114 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .register-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            max-width: 450px;
+            max-width: 500px;
             width: 100%;
+            backdrop-filter: blur(10px);
         }
         .register-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 2rem;
+            padding: 2.5rem 2rem;
             text-align: center;
         }
+        .register-header h2 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+        .register-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
         .register-body {
-            padding: 2rem;
+            padding: 2.5rem;
         }
         .form-control {
-            border-radius: 10px;
+            border-radius: 12px;
             border: 2px solid #e9ecef;
-            padding: 12px 15px;
+            padding: 15px 20px;
+            font-size: 1rem;
             transition: all 0.3s ease;
+            background: #f8f9fa;
         }
         .form-control:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            background: white;
+        }
+        .input-group-text {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            color: #6c757d;
+        }
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 12px 12px 0;
         }
         .btn-register {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            border-radius: 10px;
-            padding: 12px;
+            border-radius: 12px;
+            padding: 15px;
             font-weight: 600;
+            font-size: 1.1rem;
             transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .btn-register:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
         }
         .login-link {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e9ecef;
         }
         .login-link a {
             color: #667eea;
             text-decoration: none;
             font-weight: 600;
+            transition: all 0.3s ease;
         }
         .login-link a:hover {
+            color: #764ba2;
             text-decoration: underline;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .alert {
+            border-radius: 12px;
+            border: none;
+        }
+        .btn-outline-light {
+            border: 2px solid white;
+            color: white;
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-outline-light:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -71,6 +128,11 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
+                <div class="text-center mb-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </div>
                 <div class="register-card">
                     <div class="register-header">
                         <h2><i class="fas fa-utensils me-2"></i>Meal Planner</h2>

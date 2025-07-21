@@ -14,3 +14,5 @@
 17. After saving and closing the calendart goes dark and freezes
 18. allow upload image
 19. based on the ingreidienst bea ablt to tell whcih meals youy can make. for now oly impeent in the community meals and add a check box to filter. 
+20. ✅ need to have login and sign up button on the top left
+21. ✅ need to fix the formatting for the sign up and log in.

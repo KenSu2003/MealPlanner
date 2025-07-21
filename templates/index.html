@@ -106,13 +106,54 @@
             font-weight: bold;
             color: #667eea;
         }
+        .auth-buttons .btn {
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .auth-buttons .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .auth-buttons .btn-outline-light {
+            border: 2px solid white;
+            color: white;
+        }
+        .auth-buttons .btn-outline-light:hover {
+            background: white;
+            color: #667eea;
+        }
+        .auth-buttons .btn-light {
+            background: white;
+            color: #667eea;
+            border: 2px solid white;
+        }
+        .auth-buttons .btn-light:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
     <div class="main-container">
         <div class="header">
-            <h1><i class="fas fa-utensils"></i> Meal Planner</h1>
-            <p>Organize your meals, track ingredients, and plan your month</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="auth-buttons">
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light me-2">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-light">
+                        <i class="fas fa-user-plus"></i> Sign Up
+                    </a>
+                </div>
+                <div class="text-center flex-grow-1">
+                    <h1><i class="fas fa-utensils"></i> Meal Planner</h1>
+                    <p>Organize your meals, track ingredients, and plan your month</p>
+                </div>
+                <div style="width: 200px;"></div> <!-- Spacer for balance -->
+            </div>
         </div>
 
         <ul class="nav nav-tabs" id="mainTabs" role="tablist">
