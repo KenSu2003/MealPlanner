@@ -235,12 +235,17 @@
                                     {% endif %}
                                 </div>
                                 <div class="card-footer bg-transparent">
-                                    <div class="d-flex justify-content-between">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="editMeal({{ meal.id }})">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMeal({{ meal.id }})">
-                                            <i class="fas fa-trash"></i> Delete
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editMeal({{ meal.id }})">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteMeal({{ meal.id }})">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-sm {{ 'btn-warning' if meal.is_favorited else 'btn-outline-warning' }}" onclick="toggleFavorite({{ meal.id }}, event)">
+                                            <i class="fas fa-star"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -308,9 +313,14 @@
                                     {% endif %}
                                 </div>
                                 <div class="card-footer bg-transparent">
-                                    <button class="btn btn-sm btn-outline-success w-100" onclick="addToMyMeals({{ meal.id }})">
-                                        <i class="fas fa-plus me-2"></i>Add to My Meals
-                                    </button>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button class="btn btn-sm btn-outline-success" onclick="addToMyMeals({{ meal.id }}, event)">
+                                            <i class="fas fa-plus me-2"></i>Add to My Meals
+                                        </button>
+                                        <button class="btn btn-sm {{ 'btn-warning' if meal.is_favorited else 'btn-outline-warning' }}" onclick="toggleFavorite({{ meal.id }}, event)">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -330,16 +340,16 @@
 
                 <!-- Favorite Meals Tab -->
                 <div class="tab-pane fade" id="default" role="tabpanel">
-                    {% if default_meals %}
+                    {% if favorite_meals %}
                     <div class="row">
-                        {% for meal in default_meals %}
+                        {% for meal in favorite_meals %}
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card meal-card" style="cursor: pointer;" onclick="showMealDetails({{ meal.id }}, '{{ meal.name }}')">
                                 <div class="card-header meal-header">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h5 class="card-title mb-0">{{ meal.name }}</h5>
                                         <div>
-                                            <span class="default-badge me-2">Default</span>
+                                            <span class="badge bg-warning me-2">Favorite</span>
                                             <span class="badge bg-light text-dark">{{ meal.category|title }}</span>
                                         </div>
                                     </div>
@@ -373,9 +383,9 @@
                                     {% endif %}
                                 </div>
                                 <div class="card-footer bg-transparent">
-                                    <button class="btn btn-sm btn-outline-success w-100" onclick="addToMyMeals({{ meal.id }})">
-                                        <i class="fas fa-plus me-2"></i>Add to My Meals
-                                    </button>
+                                                                            <button class="btn btn-sm btn-outline-success w-100" onclick="addToMyMeals({{ meal.id }}, event)">
+                                            <i class="fas fa-plus me-2"></i>Add to My Meals
+                                        </button>
                                 </div>
                             </div>
                         </div>
@@ -539,7 +549,10 @@
             alert('Edit functionality coming soon!');
         }
 
-        function addToMyMeals(mealId) {
+        function addToMyMeals(mealId, event) {
+            // Prevent the card click event from firing
+            event.stopPropagation();
+            
             fetch(`/add_to_my_meals/${mealId}`, {
                 method: 'POST',
                 headers: {
@@ -712,6 +725,40 @@
         }
 
 
+
+        function toggleFavorite(mealId, event) {
+            // Prevent the card click event from firing
+            event.stopPropagation();
+            
+            fetch(`/toggle_favorite/${mealId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, data.message_type);
+                    // Update the button appearance
+                    const button = event.target.closest('button');
+                    if (data.is_favorited) {
+                        button.classList.remove('btn-outline-warning');
+                        button.classList.add('btn-warning');
+                    } else {
+                        button.classList.remove('btn-warning');
+                        button.classList.add('btn-outline-warning');
+                    }
+                    // Don't reload the page - just update the favorites count if needed
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error toggling favorite', 'error');
+            });
+        }
 
         function showToast(message, type = 'info') {
             // Create toast container if it doesn't exist

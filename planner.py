@@ -71,6 +71,19 @@ def init_db():
         )
     ''')
     
+    # Create favorites table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            meal_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (meal_id) REFERENCES meals (id),
+            UNIQUE(user_id, meal_id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -158,6 +171,10 @@ def meals():
     conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     
+    # Get user's favorites
+    cursor.execute('SELECT meal_id FROM favorites WHERE user_id = ?', (session['user_id'],))
+    user_favorites = {row[0] for row in cursor.fetchall()}
+    
     # Get personal meals
     cursor.execute('SELECT * FROM meals WHERE user_id = ? AND is_community = FALSE ORDER BY name', (session['user_id'],))
     personal_meals = cursor.fetchall()
@@ -172,8 +189,16 @@ def meals():
     ''')
     community_meals = cursor.fetchall()
     
-    # No more separate default meals - they're now part of community meals
-    default_meals = []
+    # Get favorite meals
+    cursor.execute('''
+        SELECT m.*, COALESCE(u.username, 'System') as username 
+        FROM favorites f
+        JOIN meals m ON f.meal_id = m.id
+        LEFT JOIN users u ON m.user_id = u.id
+        WHERE f.user_id = ?
+        ORDER BY m.name
+    ''', (session['user_id'],))
+    favorite_meals = cursor.fetchall()
     
     conn.close()
     
@@ -190,6 +215,7 @@ def meals():
             'category': meal[7],
             'user_id': meal[8],
             'is_community': meal[9],
+            'is_favorited': meal[0] in user_favorites,
             'type': 'personal'
         })
     
@@ -207,12 +233,13 @@ def meals():
             'user_id': meal[8],
             'is_community': meal[9],
             'username': meal[10],
+            'is_favorited': meal[0] in user_favorites,
             'type': 'community'
         })
     
-    default_list = []
-    for meal in default_meals:
-        default_list.append({
+    favorite_list = []
+    for meal in favorite_meals:
+        favorite_list.append({
             'id': meal[0],
             'name': meal[1],
             'ingredients': meal[2],
@@ -222,13 +249,16 @@ def meals():
             'servings': meal[6],
             'category': meal[7],
             'user_id': meal[8],
-            'type': 'default'
+            'is_community': meal[9],
+            'username': meal[10],
+            'is_favorited': True,
+            'type': 'favorite'
         })
     
     return render_template('meals.html', 
                          personal_meals=personal_list, 
                          community_meals=community_list, 
-                         default_meals=default_list)
+                         favorite_meals=favorite_list)
 
 @app.route('/add_meal', methods=['POST'])
 @login_required
@@ -325,7 +355,12 @@ def friends():
     ''', (session['user_id'],))
     users = cursor.fetchall()
     
-    # Get current month's meal plans for all users
+    # Get today's date and week dates
+    today = datetime.now().date()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    
+    # Get current month's dates for full month view
     now = datetime.now()
     year = now.year
     month = now.month
@@ -334,6 +369,27 @@ def friends():
     
     friends_data = []
     for user in users:
+        # Get today's meals
+        cursor.execute('''
+            SELECT mp.meal_type, m.name 
+            FROM meal_plan mp 
+            JOIN meals m ON mp.meal_id = m.id 
+            WHERE mp.date = ? AND mp.user_id = ?
+            ORDER BY mp.meal_type
+        ''', (today, user[0]))
+        today_meals = cursor.fetchall()
+        
+        # Get weekly meals
+        cursor.execute('''
+            SELECT mp.date, mp.meal_type, m.name 
+            FROM meal_plan mp 
+            JOIN meals m ON mp.meal_id = m.id 
+            WHERE mp.date BETWEEN ? AND ? AND mp.user_id = ?
+            ORDER BY mp.date, mp.meal_type
+        ''', (week_start, week_end, user[0]))
+        weekly_meals = cursor.fetchall()
+        
+        # Get monthly meals
         cursor.execute('''
             SELECT mp.date, mp.meal_type, m.name 
             FROM meal_plan mp 
@@ -341,25 +397,38 @@ def friends():
             WHERE mp.date BETWEEN ? AND ? AND mp.user_id = ?
             ORDER BY mp.date, mp.meal_type
         ''', (start_date, end_date, user[0]))
-        meal_plans = cursor.fetchall()
+        monthly_meals = cursor.fetchall()
         
-        # Organize meal plans by date
-        meal_plan_dict = {}
-        for plan in meal_plans:
-            date_str = plan[0]
-            if date_str not in meal_plan_dict:
-                meal_plan_dict[date_str] = {}
-            meal_plan_dict[date_str][plan[1]] = plan[2]
+        # Organize meals by date
+        today_dict = {}
+        for meal in today_meals:
+            today_dict[meal[0]] = meal[1]
+        
+        weekly_dict = {}
+        for meal in weekly_meals:
+            date_str = meal[0]
+            if date_str not in weekly_dict:
+                weekly_dict[date_str] = {}
+            weekly_dict[date_str][meal[1]] = meal[2]
+        
+        monthly_dict = {}
+        for meal in monthly_meals:
+            date_str = meal[0]
+            if date_str not in monthly_dict:
+                monthly_dict[date_str] = {}
+            monthly_dict[date_str][meal[1]] = meal[2]
         
         friends_data.append({
             'id': user[0],
             'username': user[1],
-            'meal_plans': meal_plan_dict
+            'today_meals': today_dict,
+            'weekly_meals': weekly_dict,
+            'monthly_meals': monthly_dict
         })
     
     conn.close()
     
-    return render_template('friends.html', friends=friends_data, month_name=calendar.month_name[month], year=year)
+    return render_template('friends.html', friends=friends_data, month_name=calendar.month_name[month], year=year, today=today)
 
 @app.route('/ingredients')
 @login_required
@@ -599,6 +668,116 @@ def delete_planned_meal():
     conn.close()
     
     return jsonify({'success': True})
+
+@app.route('/toggle_favorite/<int:meal_id>', methods=['POST'])
+@login_required
+def toggle_favorite(meal_id):
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Check if meal exists
+    cursor.execute('SELECT id FROM meals WHERE id = ?', (meal_id,))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'success': False, 'message': 'Meal not found'})
+    
+    # Check if already favorited
+    cursor.execute('SELECT id FROM favorites WHERE user_id = ? AND meal_id = ?', (session['user_id'], meal_id))
+    existing_favorite = cursor.fetchone()
+    
+    if existing_favorite:
+        # Remove from favorites
+        cursor.execute('DELETE FROM favorites WHERE user_id = ? AND meal_id = ?', (session['user_id'], meal_id))
+        message = 'Meal removed from favorites'
+        message_type = 'error'
+        is_favorited = False
+    else:
+        # Add to favorites
+        cursor.execute('INSERT INTO favorites (user_id, meal_id) VALUES (?, ?)', (session['user_id'], meal_id))
+        message = 'Meal added to favorites'
+        message_type = 'success'
+        is_favorited = True
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': message, 'message_type': message_type, 'is_favorited': is_favorited})
+
+@app.route('/get_favorites')
+@login_required
+def get_favorites():
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT m.*, COALESCE(u.username, 'System') as username 
+        FROM favorites f
+        JOIN meals m ON f.meal_id = m.id
+        LEFT JOIN users u ON m.user_id = u.id
+        WHERE f.user_id = ?
+        ORDER BY m.name
+    ''', (session['user_id'],))
+    
+    favorites = cursor.fetchall()
+    conn.close()
+    
+    favorites_list = []
+    for meal in favorites:
+        favorites_list.append({
+            'id': meal[0],
+            'name': meal[1],
+            'ingredients': meal[2],
+            'instructions': meal[3],
+            'prep_time': meal[4],
+            'cook_time': meal[5],
+            'servings': meal[6],
+            'category': meal[7],
+            'user_id': meal[8],
+            'is_community': meal[9],
+            'username': meal[10],
+            'type': 'favorite'
+        })
+    
+    return jsonify(favorites_list)
+
+@app.route('/get_meal_details_by_name', methods=['POST'])
+@login_required
+def get_meal_details_by_name():
+    data = request.get_json()
+    meal_name = data.get('meal_name')
+    user_id = data.get('user_id')
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT m.*, COALESCE(u.username, 'System') as username 
+        FROM meals m 
+        LEFT JOIN users u ON m.user_id = u.id 
+        WHERE m.name = ? AND m.user_id = ?
+        ORDER BY m.id DESC
+        LIMIT 1
+    ''', (meal_name, user_id))
+    
+    meal = cursor.fetchone()
+    conn.close()
+    
+    if meal:
+        return jsonify({
+            'id': meal[0],
+            'name': meal[1],
+            'ingredients': meal[2],
+            'instructions': meal[3],
+            'prep_time': meal[4],
+            'cook_time': meal[5],
+            'servings': meal[6],
+            'category': meal[7],
+            'user_id': meal[8],
+            'is_community': meal[9],
+            'username': meal[10]
+        })
+    else:
+        return jsonify({'error': 'Meal not found'}), 404
 
 @app.route('/auto_generate_plan', methods=['POST'])
 @login_required

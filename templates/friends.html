@@ -72,6 +72,45 @@
             background-color: #28a745; 
             color: #fff; 
         }
+        .today-clip {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .today-clip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .expand-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px auto;
+        }
+        .expand-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .expandable-content {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
         .day-card {
             border: 1px solid #e9ecef;
             border-radius: 8px;
@@ -174,13 +213,93 @@
                                     <h5 class="card-title mb-0">
                                         <i class="fas fa-user me-2"></i>{{ friend.username }}
                                     </h5>
-                                    <span class="badge bg-light text-dark">{{ friend.meal_plans|length }} days planned</span>
+                                    <span class="badge bg-light text-dark">{{ friend.monthly_meals|length }} days planned</span>
                                 </div>
                             </div>
                             <div class="card-body">
-                                {% if friend.meal_plans %}
-                                    {% for date, meals in friend.meal_plans.items() %}
-                                    <div class="day-card">
+                                <!-- Today's Meals Clip -->
+                                <div class="today-clip" onclick="showTodayMealDetails('{{ friend.id }}', '{{ today.strftime('%Y-%m-%d') }}', {{ friend.today_meals|tojson }})" style="cursor: pointer;">
+                                    <h6 class="mb-2">
+                                        <i class="fas fa-calendar-day me-2"></i>Today ({{ today.strftime('%b %d') }})
+                                    </h6>
+                                    <div class="meals-list">
+                                        {% if 'breakfast' in friend.today_meals %}
+                                        <span class="meal-badge breakfast">
+                                            <i class="fas fa-sun me-1"></i>{{ friend.today_meals['breakfast'][:15] }}{% if friend.today_meals['breakfast']|length > 15 %}...{% endif %}
+                                        </span>
+                                        {% endif %}
+                                        
+                                        {% if 'lunch' in friend.today_meals %}
+                                        <span class="meal-badge lunch">
+                                            <i class="fas fa-cloud-sun me-1"></i>{{ friend.today_meals['lunch'][:15] }}{% if friend.today_meals['lunch']|length > 15 %}...{% endif %}
+                                        </span>
+                                        {% endif %}
+                                        
+                                        {% if 'dinner' in friend.today_meals %}
+                                        <span class="meal-badge dinner">
+                                            <i class="fas fa-moon me-1"></i>{{ friend.today_meals['dinner'][:15] }}{% if friend.today_meals['dinner']|length > 15 %}...{% endif %}
+                                        </span>
+                                        {% endif %}
+                                        
+                                        {% if not friend.today_meals %}
+                                        <span class="text-white-50">No meals planned for today</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Weekly View (Expandable) -->
+                                <div id="weekly-{{ friend.id }}" class="expandable-content">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-calendar-week me-2"></i>This Week
+                                    </h6>
+                                    {% if friend.weekly_meals %}
+                                        {% for date, meals in friend.weekly_meals.items() %}
+                                        <div class="day-card">
+                                            <div class="day-header">
+                                                <i class="fas fa-calendar-day me-1"></i>{{ date }}
+                                            </div>
+                                            <div class="meals-list">
+                                                {% if 'breakfast' in meals %}
+                                                <span class="meal-badge breakfast">
+                                                    <i class="fas fa-sun me-1"></i>{{ meals['breakfast'][:15] }}{% if meals['breakfast']|length > 15 %}...{% endif %}
+                                                </span>
+                                                {% endif %}
+                                                
+                                                {% if 'lunch' in meals %}
+                                                <span class="meal-badge lunch">
+                                                    <i class="fas fa-cloud-sun me-1"></i>{{ meals['lunch'][:15] }}{% if meals['lunch']|length > 15 %}...{% endif %}
+                                                </span>
+                                                {% endif %}
+                                                
+                                                {% if 'dinner' in meals %}
+                                                <span class="meal-badge dinner">
+                                                    <i class="fas fa-moon me-1"></i>{{ meals['dinner'][:15] }}{% if meals['dinner']|length > 15 %}...{% endif %}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted mb-0">No meals planned this week</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Expand to Full Month Button -->
+                                <button class="expand-button" onclick="toggleMonthlyView('{{ friend.id }}')" title="View entire month">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                
+                                <!-- Monthly View (Expandable) -->
+                                <div id="monthly-{{ friend.id }}" class="expandable-content">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-calendar-alt me-2"></i>{{ month_name }} {{ year }}
+                                    </h6>
+                                    {% if friend.monthly_meals %}
+                                                                            {% for date, meals in friend.monthly_meals.items() %}
+                                    <div class="day-card" onclick="showDayMealDetails('{{ friend.id }}', '{{ date }}', {{ meals|tojson }})" style="cursor: pointer;">
                                         <div class="day-header">
                                             <i class="fas fa-calendar-day me-1"></i>{{ date }}
                                         </div>
@@ -205,12 +324,13 @@
                                         </div>
                                     </div>
                                     {% endfor %}
-                                {% else %}
-                                    <div class="text-center py-3">
-                                        <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
-                                        <p class="text-muted mb-0">No meals planned this month</p>
-                                    </div>
-                                {% endif %}
+                                    {% else %}
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted mb-0">No meals planned this month</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -227,6 +347,261 @@
         </div>
     </div>
 
+    <!-- Meal Details Modal -->
+    <div class="modal fade" id="mealDetailsModal" tabindex="-1" aria-labelledby="mealDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mealDetailsModalLabel">
+                        <i class="fas fa-utensils me-2"></i>Meal Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="mealDetailsContent">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleWeeklyView(friendId) {
+            const weeklyContent = document.getElementById(`weekly-${friendId}`);
+            const monthlyContent = document.getElementById(`monthly-${friendId}`);
+            
+            // Close monthly view if open
+            if (monthlyContent.style.display === 'block') {
+                monthlyContent.style.display = 'none';
+            }
+            
+            // Toggle weekly view
+            if (weeklyContent.style.display === 'block') {
+                weeklyContent.style.display = 'none';
+            } else {
+                weeklyContent.style.display = 'block';
+            }
+        }
+        
+        function toggleMonthlyView(friendId) {
+            const weeklyContent = document.getElementById(`weekly-${friendId}`);
+            const monthlyContent = document.getElementById(`monthly-${friendId}`);
+            const expandButton = document.querySelector(`button[onclick="toggleMonthlyView('${friendId}')"]`);
+            
+            // Close weekly view if open
+            if (weeklyContent.style.display === 'block') {
+                weeklyContent.style.display = 'none';
+            }
+            
+            // Toggle monthly view
+            if (monthlyContent.style.display === 'block') {
+                monthlyContent.style.display = 'none';
+                expandButton.innerHTML = '<i class="fas fa-plus"></i>';
+            } else {
+                monthlyContent.style.display = 'block';
+                expandButton.innerHTML = '<i class="fas fa-minus"></i>';
+            }
+        }
+        
+        function showFriendMealDetails(friendId, mealType, mealName) {
+            const modal = new bootstrap.Modal(document.getElementById('mealDetailsModal'));
+            modal.show();
+            
+            // Reset modal title
+            document.getElementById('mealDetailsModalLabel').innerHTML = `
+                <i class="fas fa-utensils me-2"></i>Meal Details
+            `;
+            
+            fetch('/get_meal_details_by_name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    meal_name: mealName,
+                    user_id: friendId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('mealDetailsContent').innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                            <h5>Meal Details Not Available</h5>
+                            <p class="text-muted">The meal details for "${mealName}" could not be found.</p>
+                        </div>
+                    `;
+                } else {
+                    const content = document.getElementById('mealDetailsContent');
+                    let html = `
+                        <div class="meal-details-content">
+                            <div class="meal-details-section mb-4">
+                                <h6><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
+                                <div class="row">
+                                    <div class="col-md-6"><strong>Name:</strong> ${data.name}</div>
+                                    <div class="col-md-6"><strong>Category:</strong> ${data.category || 'Not specified'}</div>
+                                </div>
+                            </div>
+                            <div class="meal-details-section mb-4">
+                                <h6><i class="fas fa-clock me-2"></i>Time Information</h6>
+                                <div class="row">
+                                    <div class="col-md-4"><strong>Prep Time:</strong> ${data.prep_time || 0} minutes</div>
+                                    <div class="col-md-4"><strong>Cook Time:</strong> ${data.cook_time || 0} minutes</div>
+                                    <div class="col-md-4"><strong>Servings:</strong> ${data.servings || 'Not specified'}</div>
+                                </div>
+                            </div>
+                        `;
+                    if (data.ingredients) {
+                        html += `<div class="meal-details-section mb-4"><h6><i class="fas fa-carrot me-2"></i>Ingredients</h6><p class="mb-0">${data.ingredients.replace(/\n/g, '<br>')}</p></div>`;
+                    }
+                    if (data.instructions) {
+                        html += `<div class="meal-details-section mb-4"><h6><i class="fas fa-list-ol me-2"></i>Instructions</h6><p class="mb-0">${data.instructions.replace(/\n/g, '<br>')}</p></div>`;
+                    }
+                    html += '</div>';
+                    content.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('mealDetailsContent').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                        <h5>Error Loading Meal Details</h5>
+                        <p class="text-muted">There was an error loading the meal details.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function showTodayMealDetails(friendId, date, meals) {
+            const modal = new bootstrap.Modal(document.getElementById('mealDetailsModal'));
+            modal.show();
+            
+            // Update modal title to show today's date
+            document.getElementById('mealDetailsModalLabel').innerHTML = `
+                <i class="fas fa-calendar-day me-2"></i>Today's Meals
+            `;
+            
+            let content = `
+                <div class="today-meals-content">
+                    <div class="text-center mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-calendar-day me-2"></i>Today (${date})
+                        </h5>
+                        <p class="text-muted">Click on any meal below to see detailed information</p>
+                    </div>
+            `;
+            
+            // Create meal sections for each meal type
+            const mealTypes = [
+                { key: 'breakfast', icon: 'fas fa-sun', title: 'Breakfast', color: 'warning' },
+                { key: 'lunch', icon: 'fas fa-cloud-sun', title: 'Lunch', color: 'info' },
+                { key: 'dinner', icon: 'fas fa-moon', title: 'Dinner', color: 'success' }
+            ];
+            
+            mealTypes.forEach(mealType => {
+                if (meals[mealType.key]) {
+                    content += `
+                        <div class="card mb-3 border-${mealType.color}">
+                            <div class="card-header bg-${mealType.color} text-white">
+                                <h6 class="mb-0">
+                                    <i class="${mealType.icon} me-2"></i>${mealType.title}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title">${meals[mealType.key]}</h6>
+                                <button class="btn btn-sm btn-outline-${mealType.color}" onclick="showFriendMealDetails('${friendId}', '${mealType.key}', '${meals[mealType.key]}')">
+                                    <i class="fas fa-info-circle me-1"></i>View Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    content += `
+                        <div class="card mb-3 border-light">
+                            <div class="card-header bg-light text-muted">
+                                <h6 class="mb-0">
+                                    <i class="${mealType.icon} me-2"></i>${mealType.title}
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <p class="text-muted mb-0">No meal planned</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            content += '</div>';
+            document.getElementById('mealDetailsContent').innerHTML = content;
+        }
+        
+        function showDayMealDetails(friendId, date, meals) {
+            const modal = new bootstrap.Modal(document.getElementById('mealDetailsModal'));
+            modal.show();
+            
+            // Update modal title to show the date
+            document.getElementById('mealDetailsModalLabel').innerHTML = `
+                <i class="fas fa-calendar-day me-2"></i>Meals for ${date}
+            `;
+            
+            let content = `
+                <div class="day-meals-content">
+                    <div class="text-center mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-calendar-day me-2"></i>${date}
+                        </h5>
+                        <p class="text-muted">Click on any meal below to see detailed information</p>
+                    </div>
+            `;
+            
+            // Create meal sections for each meal type
+            const mealTypes = [
+                { key: 'breakfast', icon: 'fas fa-sun', title: 'Breakfast', color: 'warning' },
+                { key: 'lunch', icon: 'fas fa-cloud-sun', title: 'Lunch', color: 'info' },
+                { key: 'dinner', icon: 'fas fa-moon', title: 'Dinner', color: 'success' }
+            ];
+            
+            mealTypes.forEach(mealType => {
+                if (meals[mealType.key]) {
+                    content += `
+                        <div class="card mb-3 border-${mealType.color}">
+                            <div class="card-header bg-${mealType.color} text-white">
+                                <h6 class="mb-0">
+                                    <i class="${mealType.icon} me-2"></i>${mealType.title}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title">${meals[mealType.key]}</h6>
+                                <button class="btn btn-sm btn-outline-${mealType.color}" onclick="showFriendMealDetails('${friendId}', '${mealType.key}', '${meals[mealType.key]}')">
+                                    <i class="fas fa-info-circle me-1"></i>View Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    content += `
+                        <div class="card mb-3 border-light">
+                            <div class="card-header bg-light text-muted">
+                                <h6 class="mb-0">
+                                    <i class="${mealType.icon} me-2"></i>${mealType.title}
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <p class="text-muted mb-0">No meal planned</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            content += '</div>';
+            document.getElementById('mealDetailsContent').innerHTML = content;
+        }
+    </script>
 </body>
 </html> 
