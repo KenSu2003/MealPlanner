@@ -1167,6 +1167,35 @@
             });
         }
 
+        function deletePlannedMeal(date, mealType) {
+            if (confirm(`Are you sure you want to delete this ${mealType} meal?`)) {
+                fetch('/delete_planned_meal', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        meal_type: mealType
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`${mealType.charAt(0).toUpperCase() + mealType.slice(1)} meal deleted successfully!`, 'success');
+                        // Refresh the day details to show the empty slot
+                        refreshDayDetails(date);
+                    } else {
+                        showToast('Error deleting meal', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting planned meal:', error);
+                    showToast('Error deleting meal', 'error');
+                });
+            }
+        }
+
         function showToast(message, type) {
             // Create a simple toast notification
             const toast = document.createElement('div');

@@ -16,9 +16,9 @@
 22. Feed page
 23. Groups (To join to share receipes)
 24. Need a admin mode maybe as super user? Basically allow admin to moderate the community posts
-25. When a meal is added to my meals from the comminity donm't just straight back to my meals jsut close it.
-26. When the meal details is empty you can't drag and drop
-27. Still need to implement the function where users can favorite nmeals
-28. Friends' Meal Plans: Don't need to show everything, show today's meals on the clip, and if the use clicks on the clip exapnd it to show weekly, and have a cuircle with a plus inside to expand and show the entire month.
-29. Need to be able to delete planned meals
-30. in the community meals we don't need a show full detial button just show the full detail.
+25. ✅ When a meal is added to my meals from the community don't jump straight back to my meals just close it and show the community meals again.
+27. Still need to implement the function where users can favorite meals
+28. Friends' Meal Plans: Don't need to show everything, show today's meals on the clip, and if the user clicks on the clip expand it to show weekly, and have a circle with a plus inside to expand and show the entire month.
+29. ✅ Need to be able to delete planned meals
+30. ✅ In the community meals we don't need a show full detail button just show the full detail.
+31. ✅ Meal Details for my meals should not have to be collapsed, just have it expanded.

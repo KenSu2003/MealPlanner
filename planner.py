@@ -583,6 +583,23 @@ def save_meal_plan():
     
     return jsonify({'success': True})
 
+@app.route('/delete_planned_meal', methods=['POST'])
+@login_required
+def delete_planned_meal():
+    data = request.get_json()
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Delete the specific planned meal
+    cursor.execute('DELETE FROM meal_plan WHERE date = ? AND meal_type = ? AND user_id = ?', 
+                   (data['date'], data['meal_type'], session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
 @app.route('/auto_generate_plan', methods=['POST'])
 @login_required
 def auto_generate_plan():
