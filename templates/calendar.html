@@ -621,6 +621,9 @@
                     <div id="communityMealDetailsContent">
                         <!-- Basic info shown initially -->
                         <div class="meal-basic-info">
+                            <div class="mb-3">
+                                <h5 id="meal-name-basic">-</h5>
+                            </div>
                             <div class="row">
                                 <div class="col-md-6">
                                     <h6><i class="fas fa-clock me-2"></i>Cook Time</h6>
@@ -632,7 +635,7 @@
                                 </div>
                             </div>
                             <div class="mt-3">
-                                <h6><i class="fas fa-list me-2"></i>Ingredients</h6>
+                                <h6><i class="fas fa-carrot me-2"></i>Ingredients</h6>
                                 <div id="meal-ingredients-basic">-</div>
                             </div>
                             <div class="mt-3">
@@ -850,12 +853,59 @@
                     
                     if (Object.keys(data).length === 0) {
                         content.innerHTML = `
-                            <div class="text-center py-4">
+                            <div class="text-center py-4 mb-4">
                                 <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
                                 <h5 class="text-muted">No meals planned for this day</h5>
                                 <p class="text-muted">Drag meals from below or click the + button to add meals to this day</p>
                             </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 meal-card border-dashed" data-meal-type="breakfast">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-sun me-2"></i>Breakfast
+                                            </h6>
+                                        </div>
+                                        <div class="card-body meal-drop-zone text-center py-5" data-meal-type="breakfast" data-date="${date}">
+                                            <i class="fas fa-sun fa-2x text-muted mb-3"></i>
+                                            <h6 class="text-muted">No Breakfast</h6>
+                                            <p class="small text-muted">Drag a meal here to add breakfast</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 meal-card border-dashed" data-meal-type="lunch">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-cloud-sun me-2"></i>Lunch
+                                            </h6>
+                                        </div>
+                                        <div class="card-body meal-drop-zone text-center py-5" data-meal-type="lunch" data-date="${date}">
+                                            <i class="fas fa-cloud-sun fa-2x text-muted mb-3"></i>
+                                            <h6 class="text-muted">No Lunch</h6>
+                                            <p class="small text-muted">Drag a meal here to add lunch</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 meal-card border-dashed" data-meal-type="dinner">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-moon me-2"></i>Dinner
+                                            </h6>
+                                        </div>
+                                        <div class="card-body meal-drop-zone text-center py-5" data-meal-type="dinner" data-date="${date}">
+                                            <i class="fas fa-moon fa-2x text-muted mb-3"></i>
+                                            <h6 class="text-muted">No Dinner</h6>
+                                            <p class="small text-muted">Drag a meal here to add dinner</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         `;
+                        
+                        // Setup drag and drop for empty slots
+                        setupDragAndDrop();
                     } else {
                         let html = '<div class="row">';
                         
@@ -1156,12 +1206,59 @@
                     
                     if (Object.keys(data).length === 0) {
                         content.innerHTML = `
-                            <div class="text-center py-4">
+                            <div class="text-center py-4 mb-4">
                                 <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
                                 <h5 class="text-muted">No meals planned for this day</h5>
                                 <p class="text-muted">Drag meals from below or click the + button to add meals to this day</p>
                             </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 meal-card border-dashed" data-meal-type="breakfast">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-sun me-2"></i>Breakfast
+                                            </h6>
+                                        </div>
+                                        <div class="card-body meal-drop-zone text-center py-5" data-meal-type="breakfast" data-date="${date}">
+                                            <i class="fas fa-sun fa-2x text-muted mb-3"></i>
+                                            <h6 class="text-muted">No Breakfast</h6>
+                                            <p class="small text-muted">Drag a meal here to add breakfast</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 meal-card border-dashed" data-meal-type="lunch">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-cloud-sun me-2"></i>Lunch
+                                            </h6>
+                                        </div>
+                                        <div class="card-body meal-drop-zone text-center py-5" data-meal-type="lunch" data-date="${date}">
+                                            <i class="fas fa-cloud-sun fa-2x text-muted mb-3"></i>
+                                            <h6 class="text-muted">No Lunch</h6>
+                                            <p class="small text-muted">Drag a meal here to add lunch</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 meal-card border-dashed" data-meal-type="dinner">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-moon me-2"></i>Dinner
+                                            </h6>
+                                        </div>
+                                        <div class="card-body meal-drop-zone text-center py-5" data-meal-type="dinner" data-date="${date}">
+                                            <i class="fas fa-moon fa-2x text-muted mb-3"></i>
+                                            <h6 class="text-muted">No Dinner</h6>
+                                            <p class="small text-muted">Drag a meal here to add dinner</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         `;
+                        
+                        // Setup drag and drop for empty slots
+                        setupDragAndDrop();
                     } else {
                         let html = '<div class="row">';
                         
@@ -1275,6 +1372,7 @@
                 .then(response => response.json())
                 .then(data => {
                     // Populate basic info
+                    document.getElementById('meal-name-basic').textContent = data.name;
                     document.getElementById('meal-cook-time').textContent = `${data.cook_time || 0} minutes`;
                     document.getElementById('meal-calories').textContent = data.calories || 'Not specified';
                     

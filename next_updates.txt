@@ -1,8 +1,6 @@
-1. have a slider that allows user added meal to be shared in to community
-2. allow people to click in the the calendar to get a more sepcific about the meal that day
 3. take in to account of portion size
 4. Later on find some way to incorporate avaialbe ingredients in to the planning
-5. have a siddebar that allows drag and drop of meals on the the calendar
+5. have a siddebar that allows drag and drop of meals on the the calendar, on second thought not sure wif we need this
 6. In my meals need to allow users to edit the meal by either the edit button or pressin on the box
 7. The share to comunity should be a slider icon not a checkbox icon.
 8. For the Meal Details only show the name, cook time, calroeis and ingredients. then show the details when the user clicks on to it.  
@@ -13,6 +11,14 @@
 16. when you press ingredients the "freinds" tab ont eh top dissapears
 17. After saving and closing the calendart goes dark and freezes
 18. allow upload image
+19. Needs to be unit pounds in the add new ingredients
 19. based on the ingreidienst bea ablt to tell whcih meals youy can make. for now oly impeent in the community meals and add a check box to filter. 
-20. ✅ need to have login and sign up button on the top left
-21. ✅ need to fix the formatting for the sign up and log in.
+22. Feed page
+23. Groups (To join to share receipes)
+24. Need a admin mode maybe as super user? Basically allow admin to moderate the community posts
+25. When a meal is added to my meals from the comminity donm't just straight back to my meals jsut close it.
+26. When the meal details is empty you can't drag and drop
+27. Still need to implement the function where users can favorite nmeals
+28. Friends' Meal Plans: Don't need to show everything, show today's meals on the clip, and if the use clicks on the clip exapnd it to show weekly, and have a cuircle with a plus inside to expand and show the entire month.
+29. Need to be able to delete planned meals
+30. in the community meals we don't need a show full detial button just show the full detail.
