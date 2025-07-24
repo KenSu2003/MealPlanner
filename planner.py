@@ -84,6 +84,21 @@ def init_db():
         )
     ''')
     
+    # Create shopping_list table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS shopping_list (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            quantity REAL,
+            unit TEXT,
+            category TEXT,
+            is_purchased BOOLEAN DEFAULT FALSE,
+            user_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -778,6 +793,186 @@ def get_meal_details_by_name():
         })
     else:
         return jsonify({'error': 'Meal not found'}), 404
+
+@app.route('/shopping_list')
+@login_required
+def shopping_list():
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM shopping_list WHERE user_id = ? ORDER BY category, name', (session['user_id'],))
+    shopping_data = cursor.fetchall()
+    conn.close()
+    
+    shopping_items = []
+    for item in shopping_data:
+        shopping_items.append({
+            'id': item[0],
+            'name': item[1],
+            'quantity': item[2],
+            'unit': item[3],
+            'category': item[4],
+            'is_purchased': item[5]
+        })
+    
+    return render_template('shopping_list.html', shopping_items=shopping_items)
+
+@app.route('/generate_shopping_list', methods=['POST'])
+@login_required
+def generate_shopping_list():
+    data = request.get_json()
+    period = data.get('period', 'week')  # 'week' or 'month'
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Calculate date range
+    today = datetime.now().date()
+    if period == 'week':
+        start_date = today
+        end_date = today + timedelta(days=6)
+    else:  # month
+        start_date = today
+        end_date = today + timedelta(days=29)
+    
+    # Get planned meals for the period
+    cursor.execute('''
+        SELECT mp.date, mp.meal_type, m.ingredients
+        FROM meal_plan mp 
+        JOIN meals m ON mp.meal_id = m.id 
+        WHERE mp.date BETWEEN ? AND ? AND mp.user_id = ?
+        ORDER BY mp.date
+    ''', (start_date, end_date, session['user_id']))
+    
+    planned_meals = cursor.fetchall()
+    
+    # Parse ingredients and aggregate them
+    ingredient_counts = {}
+    
+    for meal in planned_meals:
+        ingredients_str = meal[2]
+        if ingredients_str:
+            # Parse ingredients (assuming format like "2 cups flour, 1 lb chicken, etc.")
+            ingredients = [ing.strip() for ing in ingredients_str.split(',')]
+            for ingredient in ingredients:
+                if ingredient:
+                    # Try to parse quantity and unit
+                    parts = ingredient.split(' ', 2)
+                    if len(parts) >= 2:
+                        try:
+                            quantity = float(parts[0])
+                            unit = parts[1]
+                            name = parts[2] if len(parts) > 2 else ''
+                        except ValueError:
+                            quantity = 1
+                            unit = ''
+                            name = ingredient
+                    else:
+                        quantity = 1
+                        unit = ''
+                        name = ingredient
+                    
+                    # Aggregate ingredients
+                    key = f"{name} ({unit})".strip()
+                    if key in ingredient_counts:
+                        ingredient_counts[key]['quantity'] += quantity
+                    else:
+                        ingredient_counts[key] = {
+                            'name': name,
+                            'quantity': quantity,
+                            'unit': unit,
+                            'category': 'General'  # Default category
+                        }
+    
+    # Clear existing shopping list
+    cursor.execute('DELETE FROM shopping_list WHERE user_id = ?', (session['user_id'],))
+    
+    # Add items to shopping list
+    for key, item in ingredient_counts.items():
+        cursor.execute('''
+            INSERT INTO shopping_list (name, quantity, unit, category, user_id)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (item['name'], item['quantity'], item['unit'], item['category'], session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': f'Shopping list generated for {period}'})
+
+@app.route('/add_shopping_item', methods=['POST'])
+@login_required
+def add_shopping_item():
+    data = request.get_json()
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO shopping_list (name, quantity, unit, category, user_id)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (data['name'], data['quantity'], data['unit'], data['category'], session['user_id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'id': cursor.lastrowid})
+
+@app.route('/toggle_purchased/<int:item_id>', methods=['POST'])
+@login_required
+def toggle_purchased(item_id):
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Get current status
+    cursor.execute('SELECT is_purchased FROM shopping_list WHERE id = ? AND user_id = ?', (item_id, session['user_id']))
+    result = cursor.fetchone()
+    
+    if result:
+        new_status = not result[0]
+        cursor.execute('UPDATE shopping_list SET is_purchased = ? WHERE id = ? AND user_id = ?', 
+                      (new_status, item_id, session['user_id']))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'is_purchased': new_status})
+    else:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Item not found'})
+
+@app.route('/mark_as_purchased/<int:item_id>', methods=['POST'])
+@login_required
+def mark_as_purchased(item_id):
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Get shopping item details
+    cursor.execute('SELECT name, quantity, unit, category FROM shopping_list WHERE id = ? AND user_id = ?', 
+                  (item_id, session['user_id']))
+    item = cursor.fetchone()
+    
+    if item:
+        # Add to ingredients inventory
+        cursor.execute('''
+            INSERT INTO ingredients (name, quantity, unit, category, user_id)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (item[0], item[1], item[2], item[3], session['user_id']))
+        
+        # Remove from shopping list
+        cursor.execute('DELETE FROM shopping_list WHERE id = ? AND user_id = ?', (item_id, session['user_id']))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Item added to ingredients inventory'})
+    else:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Item not found'})
+
+@app.route('/delete_shopping_item/<int:item_id>', methods=['DELETE'])
+@login_required
+def delete_shopping_item(item_id):
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM shopping_list WHERE id = ? AND user_id = ?', (item_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
 
 @app.route('/auto_generate_plan', methods=['POST'])
 @login_required

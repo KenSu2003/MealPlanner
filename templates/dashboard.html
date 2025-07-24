@@ -116,6 +116,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('shopping_list') }}">
+                            <i class="fas fa-shopping-cart me-1"></i>Shopping List
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('calendar_view') }}">
                             <i class="fas fa-calendar me-1"></i>Calendar
                         </a>
@@ -194,6 +199,22 @@
                         <p class="feature-description">Track your pantry and manage ingredient inventory</p>
                         <a href="{{ url_for('ingredients') }}" class="btn btn-primary btn-feature">
                             <i class="fas fa-arrow-right me-2"></i>Manage Ingredients
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shopping List -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <div class="feature-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <h5 class="feature-title">Shopping List</h5>
+                        <p class="feature-description">Generate grocery lists from your meal plans</p>
+                        <a href="{{ url_for('shopping_list') }}" class="btn btn-primary btn-feature">
+                            <i class="fas fa-arrow-right me-2"></i>View Shopping List
                         </a>
                     </div>
                 </div>
