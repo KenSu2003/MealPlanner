@@ -1033,6 +1033,132 @@ def get_user_ingredients():
     
     return jsonify({'success': True, 'ingredients': ingredients_list})
 
+@app.route('/bulk_mark_purchased', methods=['POST'])
+@login_required
+def bulk_mark_purchased():
+    """Bulk mark shopping items as purchased"""
+    data = request.get_json()
+    item_ids = data.get('item_ids', [])
+    
+    if not item_ids:
+        return jsonify({'success': False, 'message': 'No items selected'})
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Mark all selected items as purchased
+    cursor.execute('UPDATE shopping_list SET is_purchased = TRUE WHERE id IN ({}) AND user_id = ?'.format(
+        ','.join(['?' for _ in item_ids])), item_ids + [session['user_id']])
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': f'{len(item_ids)} items marked as purchased'})
+
+@app.route('/bulk_delete_shopping_items', methods=['POST'])
+@login_required
+def bulk_delete_shopping_items():
+    """Bulk delete shopping items"""
+    data = request.get_json()
+    item_ids = data.get('item_ids', [])
+    
+    if not item_ids:
+        return jsonify({'success': False, 'message': 'No items selected'})
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Delete all selected items
+    cursor.execute('DELETE FROM shopping_list WHERE id IN ({}) AND user_id = ?'.format(
+        ','.join(['?' for _ in item_ids])), item_ids + [session['user_id']])
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': f'{len(item_ids)} items deleted'})
+
+@app.route('/quick_add_ingredient', methods=['POST'])
+@login_required
+def quick_add_ingredient():
+    """Quick add ingredient with minimal data"""
+    data = request.get_json()
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Check if ingredient already exists
+    cursor.execute('SELECT id FROM ingredients WHERE name = ? AND user_id = ?', 
+                  (data['name'], session['user_id']))
+    existing = cursor.fetchone()
+    
+    if existing:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Ingredient already exists'})
+    
+    # Add ingredient with default values
+    cursor.execute('''
+        INSERT INTO ingredients (name, quantity, unit, category, user_id)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (data['name'], data.get('quantity', 1), data.get('unit', 'pcs'), 
+          data.get('category', 'other'), session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Ingredient added quickly'})
+
+@app.route('/quick_add_meal', methods=['POST'])
+@login_required
+def quick_add_meal():
+    """Quick add meal with minimal data"""
+    data = request.get_json()
+    
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Add meal with default values
+    cursor.execute('''
+        INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+    ''', (data['name'], data.get('ingredients', ''), data.get('instructions', ''), 
+          data.get('prep_time', 15), data.get('cook_time', 30), data.get('servings', 4), 
+          data.get('category', 'dinner'), session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Meal added quickly'})
+
+@app.route('/duplicate_meal/<int:meal_id>', methods=['POST'])
+@login_required
+def duplicate_meal(meal_id):
+    """Duplicate an existing meal"""
+    conn = sqlite3.connect('meal_planner.db')
+    cursor = conn.cursor()
+    
+    # Get the original meal
+    cursor.execute('''
+        SELECT name, ingredients, instructions, prep_time, cook_time, servings, category
+        FROM meals WHERE id = ?
+    ''', (meal_id,))
+    meal = cursor.fetchone()
+    
+    if not meal:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Meal not found'})
+    
+    # Create a duplicate with "Copy" suffix
+    new_name = f"{meal[0]} (Copy)"
+    cursor.execute('''
+        INSERT INTO meals (name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+    ''', (new_name, meal[1], meal[2], meal[3], meal[4], meal[5], meal[6], session['user_id']))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True, 'message': 'Meal duplicated successfully'})
+
 @app.route('/auto_generate_plan', methods=['POST'])
 @login_required
 def auto_generate_plan():

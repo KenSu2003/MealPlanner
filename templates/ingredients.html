@@ -168,6 +168,37 @@
             </div>
 
             <div class="p-4">
+                <!-- Quick Add Section for Busy Users -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="mb-3">
+                            <i class="fas fa-bolt me-2"></i>Quick Add (for busy people!)
+                        </h6>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="quickAddIngredient" 
+                                       placeholder="Type ingredient name and press Enter (e.g., 'tomatoes', 'chicken breast')">
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="quickAddCategory">
+                                    <option value="produce">Produce</option>
+                                    <option value="dairy">Dairy</option>
+                                    <option value="meat">Meat</option>
+                                    <option value="pantry">Pantry</option>
+                                    <option value="frozen">Frozen</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-primary w-100" onclick="quickAddIngredient()">
+                                    <i class="fas fa-plus me-1"></i>Quick Add
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">Just type the ingredient name - we'll add it with default settings!</small>
+                    </div>
+                </div>
+
                 {% if ingredients %}
                 <!-- Ingredients Table -->
                 <div class="card shadow-sm mb-4">
@@ -397,6 +428,48 @@
                 });
             }
         }
+
+        function quickAddIngredient() {
+            const input = document.getElementById('quickAddIngredient');
+            const category = document.getElementById('quickAddCategory').value;
+            const ingredientName = input.value.trim();
+            
+            if (!ingredientName) {
+                alert('Please enter an ingredient name');
+                return;
+            }
+            
+            fetch('/quick_add_ingredient', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: ingredientName,
+                    category: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error adding ingredient');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding ingredient');
+            });
+        }
+
+        // Allow Enter key to trigger quick add
+        document.getElementById('quickAddIngredient').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                quickAddIngredient();
+            }
+        });
     </script>
 </body>
 </html> 

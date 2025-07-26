@@ -221,6 +221,25 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- Quick Add Section -->
+                <div class="mt-4">
+                    <h6 class="mb-2">
+                        <i class="fas fa-bolt me-2"></i>Quick Add (for busy people!)
+                    </h6>
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="quickAddItem" 
+                                   placeholder="Type item name and press Enter (e.g., 'milk', 'bananas', 'chicken breast')">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-primary w-100" onclick="quickAddItem()">
+                                <i class="fas fa-plus me-1"></i>Quick Add
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted">Just type the item name - we'll add it with default settings!</small>
+                </div>
             </div>
         </div>
 
@@ -548,7 +567,74 @@
             }
         }
 
-        // Mark selected items as purchased
+        // Quick add item function
+        function quickAddItem() {
+            const input = document.getElementById('quickAddItem');
+            const itemName = input.value.trim();
+            
+            if (!itemName) {
+                alert('Please enter an item name');
+                return;
+            }
+            
+            // Auto-detect category based on item name
+            const category = detectCategory(itemName);
+            
+            fetch('/add_shopping_item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: itemName,
+                    quantity: 1,
+                    unit: '',
+                    category: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error adding item');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding item');
+            });
+        }
+
+        // Auto-detect category based on item name
+        function detectCategory(itemName) {
+            const name = itemName.toLowerCase();
+            
+            if (name.includes('milk') || name.includes('cheese') || name.includes('yogurt') || 
+                name.includes('butter') || name.includes('cream') || name.includes('egg')) {
+                return 'Dairy';
+            } else if (name.includes('apple') || name.includes('banana') || name.includes('orange') || 
+                       name.includes('tomato') || name.includes('lettuce') || name.includes('carrot') ||
+                       name.includes('onion') || name.includes('potato') || name.includes('broccoli')) {
+                return 'Produce';
+            } else if (name.includes('chicken') || name.includes('beef') || name.includes('pork') || 
+                       name.includes('fish') || name.includes('salmon') || name.includes('turkey')) {
+                return 'Meat';
+            } else if (name.includes('bread') || name.includes('rice') || name.includes('pasta') || 
+                       name.includes('flour') || name.includes('sugar') || name.includes('oil')) {
+                return 'Pantry';
+            } else if (name.includes('frozen') || name.includes('ice cream')) {
+                return 'Frozen';
+            } else if (name.includes('water') || name.includes('juice') || name.includes('soda') || 
+                       name.includes('coffee') || name.includes('tea')) {
+                return 'Beverages';
+            } else {
+                return 'General';
+            }
+        }
+
+        // Enhanced mark selected items as purchased using bulk endpoint
         function markSelectedAsPurchased() {
             const selectedCheckboxes = document.querySelectorAll('.item-select-checkbox:checked');
             
@@ -558,37 +644,33 @@
             }
             
             if (confirm(`Mark ${selectedCheckboxes.length} selected item(s) as purchased and add to ingredients?`)) {
-                const promises = [];
+                const itemIds = Array.from(selectedCheckboxes).map(checkbox => 
+                    parseInt(checkbox.closest('.shopping-item').dataset.itemId)
+                );
                 
-                selectedCheckboxes.forEach(checkbox => {
-                    const itemId = checkbox.closest('.shopping-item').dataset.itemId;
-                    promises.push(
-                        fetch(`/mark_as_purchased/${itemId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                        }).then(response => response.json())
-                    );
+                fetch('/bulk_mark_purchased', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ item_ids: itemIds })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Error processing items');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error processing items');
                 });
-                
-                Promise.all(promises)
-                    .then(results => {
-                        const successCount = results.filter(result => result.success).length;
-                        if (successCount > 0) {
-                            location.reload();
-                        } else {
-                            alert('Error processing items');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error processing items');
-                    });
             }
         }
 
-        // Delete selected items
+        // Enhanced delete selected items using bulk endpoint
         function deleteSelected() {
             const selectedCheckboxes = document.querySelectorAll('.item-select-checkbox:checked');
             
@@ -598,33 +680,29 @@
             }
             
             if (confirm(`Delete ${selectedCheckboxes.length} selected item(s)?`)) {
-                const promises = [];
+                const itemIds = Array.from(selectedCheckboxes).map(checkbox => 
+                    parseInt(checkbox.closest('.shopping-item').dataset.itemId)
+                );
                 
-                selectedCheckboxes.forEach(checkbox => {
-                    const itemId = checkbox.closest('.shopping-item').dataset.itemId;
-                    promises.push(
-                        fetch(`/delete_shopping_item/${itemId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                        }).then(response => response.json())
-                    );
+                fetch('/bulk_delete_shopping_items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ item_ids: itemIds })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Error deleting items');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting items');
                 });
-                
-                Promise.all(promises)
-                    .then(results => {
-                        const successCount = results.filter(result => result.success).length;
-                        if (successCount > 0) {
-                            location.reload();
-                        } else {
-                            alert('Error deleting items');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error deleting items');
-                    });
             }
         }
 

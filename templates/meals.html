@@ -200,6 +200,35 @@
             <div class="tab-content p-4" id="mealsTabsContent">
                 <!-- Personal Meals Tab -->
                 <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                    <!-- Quick Add Section for Busy Users -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h6 class="mb-3">
+                                <i class="fas fa-bolt me-2"></i>Quick Add Meal (for busy people!)
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="quickAddMeal" 
+                                           placeholder="Type meal name and press Enter (e.g., 'Chicken Stir Fry', 'Pasta Carbonara')">
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="quickAddMealCategory">
+                                        <option value="dinner">Dinner</option>
+                                        <option value="breakfast">Breakfast</option>
+                                        <option value="lunch">Lunch</option>
+                                        <option value="snack">Snack</option>
+                                        <option value="dessert">Dessert</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-outline-primary w-100" onclick="quickAddMeal()">
+                                        <i class="fas fa-plus me-1"></i>Quick Add
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Just type the meal name - you can add details later!</small>
+                        </div>
+                    </div>
                     {% if personal_meals %}
                     <div class="row">
                         {% for meal in personal_meals %}
@@ -244,6 +273,9 @@
                                         <div>
                                             <button class="btn btn-sm btn-outline-primary" onclick="editMeal({{ meal.id }})">
                                                 <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" onclick="duplicateMeal({{ meal.id }})">
+                                                <i class="fas fa-copy"></i> Duplicate
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger" onclick="deleteMeal({{ meal.id }})">
                                                 <i class="fas fa-trash"></i> Delete
@@ -704,6 +736,76 @@
                 showToast('Error updating meal', 'error');
             });
         }
+
+        function duplicateMeal(mealId) {
+            // Prevent the card click event from firing
+            event.stopPropagation();
+            
+            if (confirm('Create a copy of this meal? You can then edit it to make variations.')) {
+                fetch(`/duplicate_meal/${mealId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Meal duplicated successfully! You can now edit the copy.', 'success');
+                        location.reload();
+                    } else {
+                        showToast(data.message || 'Error duplicating meal', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error duplicating meal', 'error');
+                });
+            }
+        }
+
+        function quickAddMeal() {
+            const input = document.getElementById('quickAddMeal');
+            const category = document.getElementById('quickAddMealCategory').value;
+            const mealName = input.value.trim();
+            
+            if (!mealName) {
+                showToast('Please enter a meal name', 'error');
+                return;
+            }
+            
+            fetch('/quick_add_meal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: mealName,
+                    category: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    showToast('Meal added quickly! You can edit it later to add details.', 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Error adding meal', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error adding meal', 'error');
+            });
+        }
+
+        // Allow Enter key to trigger quick add meal
+        document.getElementById('quickAddMeal').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                quickAddMeal();
+            }
+        });
 
         function addToMyMeals(mealId, event) {
             // Prevent the card click event from firing
