@@ -3,17 +3,13 @@
 5. have a siddebar that allows drag and drop of meals on the the calendar, on second thought not sure wif we need this
 15. have an add friend by sharing a userid
 18. allow upload image
-19. ✅ Needs to be unit pounds in the add new ingredients
-19. ✅ based on the ingreidienst bea ablt to tell whcih meals youy can make. for now oly impeent in the community meals and add a check box to filter. 
+19. When I press on a meal in the Meals it should show the complete detail
 22. Feed page
 23. Groups (To join to share receipes)
 24. Need a admin mode maybe as super user? Basically allow admin to moderate the community posts
-28. ✅ Need to be able to delete meals from daily Meal Details
-29. ✅ Need to implement the edit meal
 30. allergies filter?
-31. ✅ do not jump back to my meals after favorting or unfavoritng a meal from community meals
-32. ✅ when you add meals from tcommunity you don't need to show the full detail.
 33. when the friend's monthly is pressend and expaneded each daily meals should also be clickable. 
+34. When we edit meals we should also allow users to share to community like when we add a new meal
 
 
 Additional Features on a New Branch (Tokens and Price)

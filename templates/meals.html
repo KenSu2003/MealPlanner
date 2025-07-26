@@ -676,15 +676,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const meal = data.meal;
-                        document.getElementById('editMealId').value = meal.id;
-                        document.getElementById('editMealName').value = meal.name;
-                        document.getElementById('editMealCategory').value = meal.category;
-                        document.getElementById('editPrepTime').value = meal.prep_time;
-                        document.getElementById('editCookTime').value = meal.cook_time;
-                        document.getElementById('editServings').value = meal.servings;
-                        document.getElementById('editIngredients').value = meal.ingredients;
-                        document.getElementById('editInstructions').value = meal.instructions || '';
+                        // The meal data is directly in the data object, not nested under 'meal'
+                        document.getElementById('editMealId').value = data.id;
+                        document.getElementById('editMealName').value = data.name;
+                        document.getElementById('editMealCategory').value = data.category;
+                        document.getElementById('editPrepTime').value = data.prep_time;
+                        document.getElementById('editCookTime').value = data.cook_time;
+                        document.getElementById('editServings').value = data.servings;
+                        document.getElementById('editIngredients').value = data.ingredients;
+                        document.getElementById('editInstructions').value = data.instructions || '';
                         
                         // Show the edit modal
                         const editModal = new bootstrap.Modal(document.getElementById('editMealModal'));
@@ -839,10 +839,29 @@
             const modal = new bootstrap.Modal(document.getElementById('mealDetailsModal'));
             modal.show();
             
+            // Show loading state
+            document.getElementById('mealDetailsContent').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading meal details...</p>
+                </div>
+            `;
+            
             // Fetch meal details
             fetch(`/get_meal_details/${mealId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    // Check if meal was found
+                    if (!data.success) {
+                        throw new Error(data.error || 'Meal not found');
+                    }
                     const content = document.getElementById('mealDetailsContent');
                     
                     let html = `
@@ -909,6 +928,8 @@
         }
 
         function showMealDetails(mealId, mealName) {
+            console.log('showMealDetails called with:', { mealId, mealName }); // Debug log
+            
             // Show the modal
             const modal = new bootstrap.Modal(document.getElementById('mealDetailsModal'));
             modal.show();
@@ -924,14 +945,17 @@
             `;
             
             // Fetch meal details
+            console.log('Fetching meal details for ID:', mealId); // Debug log
             fetch(`/get_meal_details/${mealId}`)
                 .then(response => {
+                    console.log('Response status:', response.status); // Debug log
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log('Meal details response:', data); // Debug log
                     // Check if meal was found
                     if (!data.success) {
                         throw new Error(data.error || 'Meal not found');
@@ -992,6 +1016,11 @@
                 })
                 .catch(error => {
                     console.error('Error fetching meal details:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        mealId: mealId
+                    });
                     document.getElementById('mealDetailsContent').innerHTML = `
                         <div class="text-center py-4">
                             <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
