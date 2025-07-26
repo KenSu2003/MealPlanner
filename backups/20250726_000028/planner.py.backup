@@ -10,8 +10,8 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
 
 # Database initialization
-def init_db(db_path='meal_planner.db'):
-    conn = sqlite3.connect(db_path)
+def init_db():
+    conn = sqlite3.connect('meal_planner.db')
     cursor = conn.cursor()
     
     # Create users table
@@ -316,36 +316,6 @@ def delete_meal(meal_id):
     
     return jsonify({'success': True})
 
-@app.route('/edit_meal/<int:meal_id>', methods=['PUT'])
-@login_required
-def edit_meal(meal_id):
-    """Edit an existing meal"""
-    data = request.get_json()
-    
-    conn = sqlite3.connect('meal_planner.db')
-    cursor = conn.cursor()
-    
-    # Check if meal exists and belongs to user
-    cursor.execute('SELECT id FROM meals WHERE id = ? AND user_id = ?', (meal_id, session['user_id']))
-    if not cursor.fetchone():
-        conn.close()
-        return jsonify({'success': False, 'message': 'Meal not found or access denied'})
-    
-    # Update the meal
-    cursor.execute('''
-        UPDATE meals 
-        SET name = ?, ingredients = ?, instructions = ?, prep_time = ?, 
-            cook_time = ?, servings = ?, category = ?
-        WHERE id = ? AND user_id = ?
-    ''', (data['name'], data['ingredients'], data['instructions'], 
-          data['prep_time'], data['cook_time'], data['servings'], 
-          data['category'], meal_id, session['user_id']))
-    
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'success': True, 'message': 'Meal updated successfully'})
-
 @app.route('/add_to_my_meals/<int:meal_id>', methods=['POST'])
 @login_required
 def add_to_my_meals(meal_id):
@@ -486,24 +456,16 @@ def ingredients():
     
     ingredients_list = []
     for ingredient in ingredients_data:
-        # Convert expiry_date string to date object if it exists
-        expiry_date = None
-        if ingredient[5]:
-            try:
-                expiry_date = datetime.strptime(ingredient[5], '%Y-%m-%d').date()
-            except (ValueError, TypeError):
-                expiry_date = None
-        
         ingredients_list.append({
             'id': ingredient[0],
             'name': ingredient[1],
             'quantity': ingredient[2],
             'unit': ingredient[3],
             'category': ingredient[4],
-            'expiry_date': expiry_date
+            'expiry_date': ingredient[5]
         })
     
-    return render_template('ingredients.html', ingredients=ingredients_list, today=datetime.now().date())
+    return render_template('ingredients.html', ingredients=ingredients_list)
 
 @app.route('/add_ingredient', methods=['POST'])
 @login_required
@@ -1011,27 +973,6 @@ def delete_shopping_item(item_id):
     conn.close()
     
     return jsonify({'success': True})
-
-@app.route('/get_user_ingredients')
-@login_required
-def get_user_ingredients():
-    """Get user's available ingredients for meal filtering"""
-    conn = sqlite3.connect('meal_planner.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT name, quantity, unit, category FROM ingredients WHERE user_id = ? ORDER BY name', (session['user_id'],))
-    ingredients_data = cursor.fetchall()
-    conn.close()
-    
-    ingredients_list = []
-    for ingredient in ingredients_data:
-        ingredients_list.append({
-            'name': ingredient[0],
-            'quantity': ingredient[1],
-            'unit': ingredient[2],
-            'category': ingredient[3]
-        })
-    
-    return jsonify({'success': True, 'ingredients': ingredients_list})
 
 @app.route('/auto_generate_plan', methods=['POST'])
 @login_required

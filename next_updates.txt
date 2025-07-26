@@ -14,3 +14,22 @@
 31. ✅ do not jump back to my meals after favorting or unfavoritng a meal from community meals
 32. ✅ when you add meals from tcommunity you don't need to show the full detail.
 33. when the friend's monthly is pressend and expaneded each daily meals should also be clickable. 
+
+
+Additional Features on a New Branch (Tokens and Price)
+I am thinking that we give free users one token every month to have the AI Automatically generate a meal plan.
+For now I am not sure if they get to type in a prompt or not.
+For the paid users they get around 10 tokens and they get to type in the prompt to generate.
+Not sure which api to use yet. 
+Maybe we'll have adds maybe not. 
+Might also let users earn tokens for sharing receipes on the community but not sure how to regulate.
+
+Marketing Game Plan:
+Share a screenshot and video on Reddit to the Mom's and ask for their opinion. 
+Emphasize it will be compelte free because I am inspired by them.
+Also be transparent that there will be a paid version but should not affect the basic functionality that they currently see.
+
+To Do:
+Legalities
+AI APIs
+Business Certified?

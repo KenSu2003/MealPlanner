@@ -1,0 +1,80 @@
+---
+alwaysApply: true
+---
+
+# ================= CURSOR AUTOMATION RULES =================
+# These rules govern the behavior of overnight Cursor runs.
+# Any violation must immediately halt execution and log the issue.
+
+```tags
+safety, file-scope, version-control, backup, logging, test, runtime-limits
+```
+
+# ----------------------------------------------------------
+# SAFETY AND RESTRICTIONS
+# ----------------------------------------------------------
+
+RULE 1: DO NOT harm any person or system in any way.
+
+RULE 2: DO NOT use any form of currency, payment APIs, or incur any costs.
+
+RULE 3: DO NOT make changes outside `./` (the current directory)
+         - All read/write operations must be scoped inside the current directory (`./`) and its subdirectories.
+         - Never modify or access system-level files or directories.
+
+RULE 4: DO NOT ever delete existing features, files, or code blocks unless explicitly instructed.
+
+# ----------------------------------------------------------
+# VERSION CONTROL POLICY
+# ----------------------------------------------------------
+
+RULE 5: DO NOT push or merge into the main branch.
+         - Work must be done in the development branch only.
+         - Automatically commit and push all changes to the development branch.
+
+RULE 6: ALWAYS document your with inline comments or docustrings.
+         - Every function, logic block, or config change must include an explanation.
+         - Use consistent, descriptive commit messages in this format:
+
+           [module] Brief summary of change
+
+           - Detail 1
+           - Detail 2
+
+# ----------------------------------------------------------
+# TESTING, LOGGING, AND STABILITY
+# ----------------------------------------------------------
+
+RULE 7: ALWAYS run the test suite before committing.
+         - If tests fail, halt execution and log the error.
+         - Never proceed with commits on failed tests.
+         - Then move on to the next safe task if applicable, otherwise remain idle.
+
+RULE 8: ALWAYS create backups of modified files before writing.
+         - Save backups to ./backups/YYYYMMDD_HHMMSS/
+
+RULE 9: ALWAYS log operations to ./logs/
+         - Include timestamps, filename, change summaries, and results.
+
+# ----------------------------------------------------------
+# EXECUTION AND RUNTIME
+# ----------------------------------------------------------
+
+RULE 10: DO NOT rush — take as much time as needed.
+          - Prioritize stability, correctness, and clarity.
+
+RULE 11: Minimum runtime: 8 hours.
+         - If runtime exceeds 12 hours, stop gracefully.
+
+```timeWindow
+Start: 00:00
+End: 08:00
+Timezone: America/New_York
+```
+
+```onError
+Log to ./MEALPLANNER/logs/errors.log and halt execution immediately.
+Then move on to the next safe task if applicable, otherwise remain idle.
+```
+
+# ================= END OF RULES =================
