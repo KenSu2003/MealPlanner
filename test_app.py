@@ -218,5 +218,49 @@ def test_database_initialization():
         os.close(db_fd)
         os.unlink(db_path)
 
+def test_get_meal_details(auth_client):
+    """Test getting meal details"""
+    # First add a meal
+    response = auth_client.post('/add_meal', 
+        json={
+            'name': 'Test Meal for Details',
+            'ingredients': 'ingredient1, ingredient2',
+            'instructions': 'Test instructions',
+            'prep_time': '15',
+            'cook_time': '30',
+            'servings': '4',
+            'category': 'Dinner'
+        }
+    )
+    assert response.status_code == 200
+    
+    # Get the meal ID from the response
+    data = response.get_json()
+    meal_id = data.get('id')
+    assert meal_id is not None
+    
+    # Now get the meal details
+    response = auth_client.get(f'/get_meal_details/{meal_id}')
+    assert response.status_code == 200
+    
+    data = response.get_json()
+    assert data['success'] == True
+    assert data['name'] == 'Test Meal for Details'
+    assert data['ingredients'] == 'ingredient1, ingredient2'
+    assert data['instructions'] == 'Test instructions'
+    assert data['prep_time'] == 15
+    assert data['cook_time'] == 30
+    assert data['servings'] == 4
+    assert data['category'] == 'Dinner'
+
+def test_get_meal_details_not_found(auth_client):
+    """Test getting meal details for non-existent meal"""
+    response = auth_client.get('/get_meal_details/99999')
+    assert response.status_code == 404
+    
+    data = response.get_json()
+    assert data['success'] == False
+    assert 'not found' in data['error'].lower()
+
 if __name__ == '__main__':
     pytest.main([__file__]) 

@@ -654,32 +654,38 @@ def get_day_meals(date):
 @login_required
 def get_meal_details(meal_id):
     """Get detailed meal information"""
-    conn = sqlite3.connect('meal_planner.db')
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        SELECT id, name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community
-        FROM meals 
-        WHERE id = ?
-    ''', (meal_id,))
-    meal = cursor.fetchone()
-    conn.close()
-    
-    if meal:
-        return jsonify({
-            'id': meal[0],
-            'name': meal[1],
-            'ingredients': meal[2],
-            'instructions': meal[3],
-            'prep_time': meal[4],
-            'cook_time': meal[5],
-            'servings': meal[6],
-            'category': meal[7],
-            'user_id': meal[8],
-            'is_community': meal[9]
-        })
-    else:
-        return jsonify({'error': 'Meal not found'}), 404
+    try:
+        conn = sqlite3.connect('meal_planner.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, name, ingredients, instructions, prep_time, cook_time, servings, category, user_id, is_community
+            FROM meals 
+            WHERE id = ?
+        ''', (meal_id,))
+        meal = cursor.fetchone()
+        conn.close()
+        
+        if meal:
+            return jsonify({
+                'success': True,
+                'id': meal[0],
+                'name': meal[1],
+                'ingredients': meal[2],
+                'instructions': meal[3],
+                'prep_time': meal[4],
+                'cook_time': meal[5],
+                'servings': meal[6],
+                'category': meal[7],
+                'user_id': meal[8],
+                'is_community': meal[9]
+            })
+        else:
+            return jsonify({'success': False, 'error': f'Meal with ID {meal_id} not found'}), 404
+            
+    except Exception as e:
+        print(f"Error in get_meal_details: {str(e)}")
+        return jsonify({'success': False, 'error': 'Database error occurred'}), 500
 
 @app.route('/save_meal_plan', methods=['POST'])
 @login_required

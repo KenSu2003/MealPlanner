@@ -913,10 +913,30 @@
             const modal = new bootstrap.Modal(document.getElementById('mealDetailsModal'));
             modal.show();
             
+            // Show loading state
+            document.getElementById('mealDetailsContent').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading meal details...</p>
+                </div>
+            `;
+            
             // Fetch meal details
             fetch(`/get_meal_details/${mealId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    // Check if meal was found
+                    if (!data.success) {
+                        throw new Error(data.error || 'Meal not found');
+                    }
+                    
                     const content = document.getElementById('mealDetailsContent');
                     
                     let html = `
@@ -925,7 +945,7 @@
                                 <h6><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <strong>Name:</strong> ${data.name}
+                                        <strong>Name:</strong> ${data.name || 'Not specified'}
                                     </div>
                                     <div class="col-md-6">
                                         <strong>Category:</strong> ${data.category || 'Not specified'}
@@ -976,7 +996,10 @@
                         <div class="text-center py-4">
                             <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
                             <h5 class="text-danger">Error loading meal details</h5>
-                            <p class="text-muted">Please try again later</p>
+                            <p class="text-muted">${error.message || 'Please try again later'}</p>
+                            <button class="btn btn-outline-primary mt-2" onclick="showMealDetails(${mealId}, '${mealName}')">
+                                <i class="fas fa-redo me-1"></i>Try Again
+                            </button>
                         </div>
                     `;
                 });
